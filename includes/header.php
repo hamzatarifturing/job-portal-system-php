@@ -23,6 +23,8 @@
                 <li><a href="#">Employers</a></li>
                 <li><a href="#">About</a></li>
                 <li><a href="#">Contact</a></li>
+                <li><a href="register.php" class="btn-register">Register</a></li>
+                <li><a href="#" class="btn-login">Login</a></li>
             </ul>
         </nav>
     </header>
