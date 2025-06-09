@@ -98,14 +98,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             
             <div class="form-group">
                 <label>User Type</label>
-                <div class="radio-group">
-                    <label class="radio-inline">
-                        <input type="radio" name="user_type" value="jobseeker" <?php echo ($user_type == "jobseeker") ? "checked" : ""; ?>> Job Seeker
-                    </label>
-                    <label class="radio-inline">
-                        <input type="radio" name="user_type" value="employer" <?php echo ($user_type == "employer") ? "checked" : ""; ?>> Employer
-                    </label>
-                </div>
+                <select name="user_type" class="form-control <?php echo (!empty($user_type_err)) ? 'is-invalid' : ''; ?>">
+                    <option value="">-- Select User Type --</option>
+                    <option value="jobseeker" <?php echo ($user_type == "jobseeker") ? "selected" : ""; ?>>Job Seeker</option>
+                    <option value="employer" <?php echo ($user_type == "employer") ? "selected" : ""; ?>>Employer</option>
+                </select>
                 <span class="invalid-feedback"><?php echo $user_type_err; ?></span>
             </div>
             
