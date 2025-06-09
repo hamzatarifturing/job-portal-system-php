@@ -2,13 +2,49 @@
 // Start session
 session_start();
 
-// Include header
+// Include header and database config
 include_once 'includes/header.php';
+include_once 'includes/config.php';
+
+// Compatibility for password_hash in PHP < 5.5
+if (!function_exists('password_hash')) {
+    /**
+     * Hash the password using the specified algorithm
+     *
+     * @param string $password The password to hash
+     * @param int $algo The algorithm to use (Defined by PASSWORD_* constants)
+     * @param array $options The options for the algorithm
+     * @return string|false The hashed password, or false on error
+     */
+    function password_hash($password, $algo, array $options = array()) {
+        // Use SHA-256 with a random salt
+        $salt = mcrypt_create_iv(22, MCRYPT_DEV_URANDOM);
+        $salt = base64_encode($salt);
+        $salt = str_replace('+', '.', $salt);
+        $hash = crypt($password, '$5$rounds=5000$' . $salt . '$');
+        return $hash;
+    }
+}
+
+// Compatibility for password_verify in PHP < 5.5
+if (!function_exists('password_verify')) {
+    /**
+     * Verifies that a password matches a hash
+     * 
+     * @param string $password The password to verify
+     * @param string $hash The hash to verify against
+     * @return boolean Returns TRUE if the password and hash match, or FALSE otherwise
+     */
+    function password_verify($password, $hash) {
+        return (crypt($password, $hash) === $hash);
+    }
+}
 
 // Initialize variables
 $name = $email = $user_type = "";
 $name_err = $email_err = $password_err = $confirm_password_err = $user_type_err = "";
 $registration_success = "";
+$registration_err = "";
 
 // Process form data when form is submitted
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
@@ -24,13 +60,37 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if (empty(trim($_POST["email"]))) {
         $email_err = "Please enter your email.";
     } else {
-        // Prepare a select statement to check if email already exists
-        // This will be implemented later when connected to database
         $email = trim($_POST["email"]);
         
         // Simple email validation
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $email_err = "Please enter a valid email address.";
+        } else {
+            // Check if email already exists in database
+            $sql = "SELECT id FROM users WHERE email = ?";
+            
+            if ($stmt = mysqli_prepare($conn, $sql)) {
+                // Bind variables to the prepared statement as parameters
+                mysqli_stmt_bind_param($stmt, "s", $param_email);
+                
+                // Set parameters
+                $param_email = $email;
+                
+                // Attempt to execute the prepared statement
+                if (mysqli_stmt_execute($stmt)) {
+                    // Store result
+                    mysqli_stmt_store_result($stmt);
+                    
+                    if (mysqli_stmt_num_rows($stmt) == 1) {
+                        $email_err = "This email is already registered.";
+                    }
+                } else {
+                    $registration_err = "Oops! Something went wrong. Please try again later.";
+                }
+                
+                // Close statement
+                mysqli_stmt_close($stmt);
+            }
         }
     }
     
@@ -62,12 +122,90 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     
     // Check input errors before inserting in database
     if (empty($name_err) && empty($email_err) && empty($password_err) && empty($confirm_password_err) && empty($user_type_err)) {
-        // This is where we would insert into the database
-        // For now, let's just show a success message
-        $registration_success = "Registration successful! You can now login.";
         
-        // Clear form data after successful submission
-        $name = $email = $user_type = "";
+        // Begin transaction for database operations
+        mysqli_begin_transaction($conn);
+        
+        try {
+            // Prepare an insert statement for users table
+            $sql = "INSERT INTO users (name, email, password, user_type) VALUES (?, ?, ?, ?)";
+            
+            if ($stmt = mysqli_prepare($conn, $sql)) {
+                // Bind variables to the prepared statement as parameters
+                mysqli_stmt_bind_param($stmt, "ssss", $param_name, $param_email, $param_password, $param_user_type);
+                
+                // Set parameters
+                $param_name = $name;
+                $param_email = $email;
+                // Create a password hash
+                $param_password = password_hash($password, PASSWORD_DEFAULT);
+                $param_user_type = $user_type;
+                
+                // Attempt to execute the prepared statement
+                if (mysqli_stmt_execute($stmt)) {
+                    // Get the user ID of the newly created user
+                    $user_id = mysqli_insert_id($conn);
+                    
+                    // Create appropriate profile record based on user type
+                    if ($user_type == "jobseeker") {
+                        // Create empty job seeker profile
+                        $profile_sql = "INSERT INTO profile_jobseeker (user_id) VALUES (?)";
+                    } else { // employer
+                        // Create empty employer profile
+                        $profile_sql = "INSERT INTO profile_employer (user_id, company_name) VALUES (?, 'Unnamed Company')";
+                    }
+                    
+                    if ($profile_stmt = mysqli_prepare($conn, $profile_sql)) {
+                        // Bind variables to the prepared statement as parameters
+                        mysqli_stmt_bind_param($profile_stmt, "i", $user_id);
+                        
+                        // Attempt to execute the prepared statement
+                        if (mysqli_stmt_execute($profile_stmt)) {
+                            // Commit the transaction
+                            if (function_exists('mysqli_commit')) {
+                                mysqli_commit($conn);
+                            } else {
+                                mysqli_query($conn, "COMMIT");
+                            }
+                            $registration_success = "Registration successful! You can now login.";
+                            
+                            // Clear form data after successful submission
+                            $name = $email = $user_type = "";
+                        } else {
+                            // Rollback if profile creation fails
+                            if (function_exists('mysqli_rollback')) {
+                                mysqli_rollback($conn);
+                            } else {
+                                mysqli_query($conn, "ROLLBACK");
+                            }
+                            $registration_err = "Something went wrong creating your profile. Please try again.";
+                        }
+                        
+                        // Close profile statement
+                        mysqli_stmt_close($profile_stmt);
+                    }
+                } else {
+                    // Rollback if user creation fails
+                    if (function_exists('mysqli_rollback')) {
+                        mysqli_rollback($conn);
+                    } else {
+                        mysqli_query($conn, "ROLLBACK");
+                    }
+                    $registration_err = "Something went wrong. Please try again.";
+                }
+                
+                // Close user statement
+                mysqli_stmt_close($stmt);
+            }
+        } catch (Exception $e) {
+            // Rollback on exception
+            if (function_exists('mysqli_rollback')) {
+                mysqli_rollback($conn);
+            } else {
+                mysqli_query($conn, "ROLLBACK");
+            }
+            $registration_err = "Database error: " . $e->getMessage();
+        }
     }
 }
 ?>
@@ -79,6 +217,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <?php if (!empty($registration_success)) : ?>
             <div class="alert alert-success">
                 <?php echo $registration_success; ?>
+            </div>
+        <?php endif; ?>
+        
+        <?php if (!empty($registration_err)) : ?>
+            <div class="alert alert-danger">
+                <?php echo $registration_err; ?>
             </div>
         <?php endif; ?>
         
