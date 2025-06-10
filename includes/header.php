@@ -6,7 +6,16 @@ require_once 'db_config.php';
 if(!isset($pageTitle)) {
     $pageTitle = 'Job Portal';
 }
+// Check if includePath is defined (for subdirectory pages)
+if (!isset($includePath)) {
+    $includePath = '';  // Default to current directory
+}
+
+// Adjust asset paths based on include path
+$cssPath = $includePath . "assets/css/style.css";
+$jsPath = $includePath . "assets/js/main.js";
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -18,7 +27,7 @@ if(!isset($pageTitle)) {
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="<?php echo $cssPath; ?>">
 </head>
 <body>
     <header>

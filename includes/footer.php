@@ -36,6 +36,6 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
     
     <!-- Custom JavaScript -->
-    <script src="/assets/js/main.js"></script>
+    <script src="<?php echo $jsPath; ?>"></script>
 </body>
 </html>
