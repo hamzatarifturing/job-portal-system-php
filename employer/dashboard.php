@@ -48,7 +48,8 @@ $companyName = isset($employerData['company_name']) ? $employerData['company_nam
 
     <!-- Welcome section -->
     <div class="jumbotron bg-dark text-white">
-        <h1 class="display-4">Welcome, <?php echo htmlspecialchars($companyName); ?>!</h1>
+    <h1 class="display-4">Welcome, <?php echo htmlspecialchars($userFirstName . ' ' . $userLastName); ?>!</h1>
+    <h3 class="text-warning mb-3">Managing: <span class="badge badge-warning"><?php echo htmlspecialchars($companyName); ?></span></h3>
         <p class="lead">This is your employer dashboard where you can post jobs, manage applications, and find the right talent for your company.</p>
         <hr class="my-4 bg-light">
         <p>Start posting jobs or review applications from potential candidates.</p>
@@ -165,6 +166,60 @@ $companyName = isset($employerData['company_name']) ? $employerData['company_nam
                 </div>
                 <div class="col-md-6 text-center">
                     <a href="subscription.php" class="btn btn-success btn-lg">Upgrade Your Plan</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Account Details -->
+    <div class="card mb-4">
+        <div class="card-header bg-secondary text-white">
+            <h5 class="m-0">Account Details</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>User Information</h5>
+                    <table class="table table-bordered">
+                        <tr>
+                            <th>Name:</th>
+                            <td><?php echo htmlspecialchars($userFirstName . ' ' . $userLastName); ?></td>
+                        </tr>
+                        <tr>
+                            <th>Username:</th>
+                            <td><?php echo htmlspecialchars($username); ?></td>
+                        </tr>
+                        <tr>
+                            <th>Account Type:</th>
+                            <td><span class="badge badge-info">Employer</span></td>
+                        </tr>
+                        <tr>
+                            <th>Last Login:</th>
+                            <td><?php echo isset($_SESSION['last_login']) ? $_SESSION['last_login'] : 'First login'; ?></td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <h5>Company Information</h5>
+                    <table class="table table-bordered">
+                        <tr>
+                            <th>Company:</th>
+                            <td><?php echo htmlspecialchars($companyName); ?></td>
+                        </tr>
+                        <tr>
+                            <th>Industry:</th>
+                            <td><?php echo isset($employerData['industry']) ? htmlspecialchars($employerData['industry']) : 'Not specified'; ?></td>
+                        </tr>
+                        <tr>
+                            <th>Description:</th>
+                            <td><?php echo isset($employerData['company_description']) && !empty($employerData['company_description']) ? 
+                                substr(htmlspecialchars($employerData['company_description']), 0, 100) . '...' : 
+                                'No description available'; ?></td>
+                        </tr>
+                    </table>
+                    <div class="text-right">
+                        <a href="company_profile.php" class="btn btn-outline-secondary">Edit Company Details</a>
+                    </div>
                 </div>
             </div>
         </div>
