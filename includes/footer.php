@@ -9,10 +9,10 @@
                 <div class="col-md-4">
                     <h5>Quick Links</h5>
                     <ul class="list-unstyled">
-                        <li><a href="/" class="text-white">Home</a></li>
-                        <li><a href="/jobs.php" class="text-white">Browse Jobs</a></li>
-                        <li><a href="/about.php" class="text-white">About Us</a></li>
-                        <li><a href="/contact.php" class="text-white">Contact</a></li>
+                        <li><a href="index.php" class="text-white">Home</a></li>
+                        <li><a href="jobs.php" class="text-white">Browse Jobs</a></li>
+                        <li><a href="about.php" class="text-white">About Us</a></li>
+                        <li><a href="contact.php" class="text-white">Contact</a></li>
                     </ul>
                 </div>
                 <div class="col-md-4">
