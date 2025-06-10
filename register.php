@@ -68,6 +68,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $errors[] = "Password is required";
     } else if (strlen($password) < 6) {
         $errors[] = "Password must be at least 6 characters long";
+    } else {
+        // Check password complexity
+        $has_letter = preg_match('/[a-zA-Z]/', $password);
+        $has_number = preg_match('/\d/', $password);
+        $has_special = preg_match('/[^a-zA-Z\d]/', $password);
+        
+        if (!($has_letter && $has_number && $has_special)) {
+            $errors[] = "Password should consist of alphabets, numbers and special characters";
+        }
     }
     
     if ($password != $confirm_password) {
@@ -142,7 +151,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     </div>
                 <?php endif; ?>
                 
-                <form method="post" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" class="needs-validation" novalidate>
+                <form method="post" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" class="needs-validation" onsubmit="return validateForm()" novalidate>
                     <div class="form-group">
                         <label for="user_type">I am a:</label>
                         <select class="form-control" id="user_type" name="user_type" required onchange="toggleCompanyField()">
@@ -190,9 +199,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label for="password">Password:</label>
+                            <label for="password">Password:</label>
                                 <input type="password" class="form-control" id="password" name="password" required>
-                                <small class="form-text text-muted">Password must be at least 6 characters long</small>
+                                <small id="password-feedback" class="form-text text-muted">Password must be at least 6 characters long and include letters, numbers, and special characters</small>
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -271,9 +280,57 @@ function toggleCompanyField() {
     }
 }
 
+function checkPasswordComplexity() {
+    var password = document.getElementById('password').value;
+    var feedbackElement = document.getElementById('password-feedback');
+    
+    if (password.length > 0) {
+        var hasLetter = /[a-zA-Z]/.test(password);
+        var hasNumber = /\d/.test(password);
+        var hasSpecial = /[^a-zA-Z\d]/.test(password);
+        var isLongEnough = password.length >= 6;
+        
+        var requirements = [];
+        if (!isLongEnough) requirements.push("at least 6 characters");
+        if (!hasLetter) requirements.push("at least one letter");
+        if (!hasNumber) requirements.push("at least one number");
+        if (!hasSpecial) requirements.push("at least one special character");
+        
+        if (requirements.length > 0) {
+            var message = "Password needs: " + requirements.join(", ");
+            feedbackElement.innerHTML = message;
+            feedbackElement.className = "form-text text-danger";
+            return false;
+        } else {
+            feedbackElement.innerHTML = "Password meets all requirements!";
+            feedbackElement.className = "form-text text-success";
+            return true;
+        }
+    } else {
+        feedbackElement.innerHTML = "Password must be at least 6 characters long and include letters, numbers, and special characters";
+        feedbackElement.className = "form-text text-muted";
+        return false;
+    }
+}
+
+function validateForm() {
+    // Check if password meets complexity requirements
+    var passwordValid = checkPasswordComplexity();
+    
+    if (!passwordValid) {
+        alert("Please ensure your password meets all the complexity requirements.");
+        return false;
+    }
+    
+    return true;
+}
+
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
     toggleCompanyField();
+    
+    // Add event listener for password field
+    document.getElementById('password').addEventListener('keyup', checkPasswordComplexity);
 });
 </script>
 
