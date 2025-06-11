@@ -210,7 +210,6 @@ if ($recentJobsResult && mysqli_num_rows($recentJobsResult) > 0) {
                                 <th>Location</th>
                                 <th>Posted On</th>
                                 <th>Status</th>
-                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -233,11 +232,6 @@ if ($recentJobsResult && mysqli_num_rows($recentJobsResult) > 0) {
                                         <span class="badge badge-<?php echo $statusClass; ?>">
                                             <?php echo htmlspecialchars($job['status']); ?>
                                         </span>
-                                    </td>
-                                    <td>
-                                        <a href="edit_job.php?id=<?php echo $job['id']; ?>" class="btn btn-sm btn-outline-primary">Edit</a>
-                                        <a href="view_applications.php?job_id=<?php echo $job['id']; ?>" class="btn btn-sm btn-outline-success">Applications</a>
-                                        <a href="../jobseeker/view_job.php?id=<?php echo $job['id']; ?>" class="btn btn-sm btn-outline-info" target="_blank">Preview</a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
