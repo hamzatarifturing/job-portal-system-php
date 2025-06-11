@@ -2,8 +2,8 @@
 // Start the session
 session_start();
 
-// Check if user is logged in and is a jobseeker
-if(!isset($_SESSION['user_id']) || $_SESSION['user_type'] != 'jobseeker') {
+// Check if user is logged in
+if(!isset($_SESSION['user_id'])) {
     header("Location: ../login.php?error=unauthorized");
     exit();
 }
@@ -11,6 +11,9 @@ if(!isset($_SESSION['user_id']) || $_SESSION['user_type'] != 'jobseeker') {
 // Set include path for header/footer
 $includePath = "../includes/";
 $pageTitle = "Browse Jobs | Job Portal";
+
+// Check if user is an employer (for informational alert only)
+$isEmployer = isset($_SESSION['user_type']) && $_SESSION['user_type'] == 'employer';
 
 // Include header
 include_once($includePath . "header.php");
@@ -76,6 +79,23 @@ if ($locationsResult && mysqli_num_rows($locationsResult) > 0) {
 ?>
 
 <div class="container mt-4">
+    <?php if ($isEmployer): ?>
+    <div class="alert alert-info alert-dismissible fade show mb-4" role="alert">
+        <div class="d-flex align-items-center">
+            <div>
+                <strong><i class="fa fa-eye"></i> Employer Preview Mode</strong>
+                <p class="mb-0">You are viewing the Jobs page as it appears to jobseekers. This view helps you understand how your job postings are seen by potential candidates.</p>
+            </div>
+            <div class="ml-auto">
+                <a href="../employer/dashboard.php" class="btn btn-sm btn-outline-primary">Return to Dashboard</a>
+            </div>
+        </div>
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+    <?php endif; ?>
+    
     <div class="row mb-4">
         <div class="col-12">
             <div class="card shadow-sm">
@@ -168,6 +188,7 @@ if ($locationsResult && mysqli_num_rows($locationsResult) > 0) {
                 </div>
             </div>
             
+            <?php if (!$isEmployer): ?>
             <!-- Jobseeker Menu -->
             <div class="card mb-4">
                 <div class="card-header bg-dark text-white">
@@ -182,6 +203,25 @@ if ($locationsResult && mysqli_num_rows($locationsResult) > 0) {
                     <a href="edit_profile.php" class="list-group-item list-group-item-action">Edit Profile</a>
                 </div>
             </div>
+            <?php else: ?>
+            <!-- Employer Actions -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    Employer Actions
+                </div>
+                <div class="list-group list-group-flush">
+                    <a href="../employer/dashboard.php" class="list-group-item list-group-item-action">
+                        <i class="fa fa-arrow-left"></i> Return to Dashboard
+                    </a>
+                    <a href="../employer/post_job.php" class="list-group-item list-group-item-action">
+                        <i class="fa fa-plus-circle"></i> Post a New Job
+                    </a>
+                    <a href="../employer/job_listings.php" class="list-group-item list-group-item-action">
+                        <i class="fa fa-list"></i> Manage Your Jobs
+                    </a>
+                </div>
+            </div>
+            <?php endif; ?>
         </div>
         
         <div class="col-md-9">
@@ -228,10 +268,15 @@ if ($locationsResult && mysqli_num_rows($locationsResult) > 0) {
                                     
                                     <div class="mt-2">
                                         <a href="view_job.php?id=<?php echo $job['id']; ?>" class="btn btn-outline-primary btn-sm">View Details</a>
+                                        <?php if (!$isEmployer): ?>
                                         <a href="apply_job.php?id=<?php echo $job['id']; ?>" class="btn btn-success btn-sm">Apply Now</a>
                                         <button type="button" class="btn btn-outline-secondary btn-sm save-job-btn" data-job-id="<?php echo $job['id']; ?>">
                                             <i class="fa fa-bookmark"></i> Save
                                         </button>
+                                        <?php else: ?>
+                                        <a href="../employer/edit_job.php?id=<?php echo $job['id']; ?>" class="btn btn-outline-warning btn-sm">Edit Job</a>
+                                        <span class="badge badge-light ml-2" data-toggle="tooltip" title="You're viewing this page as an employer. This is how jobseekers see your listings.">Preview Mode</span>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                             <?php endforeach; ?>
