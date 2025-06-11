@@ -56,6 +56,7 @@ $companyName = isset($employerData['company_name']) ? $employerData['company_nam
         <div class="mt-4">
             <a class="btn btn-primary btn-lg" href="post_job.php" role="button">Post a Job</a>
             <a class="btn btn-outline-light btn-lg" href="company_profile.php" role="button">Edit Company Profile</a>
+            <a class="btn btn-danger btn-lg" href="edit_profile.php" role="button">Edit Profile</a>
         </div>
     </div>
     
@@ -103,19 +104,24 @@ $companyName = isset($employerData['company_name']) ? $employerData['company_nam
         </div>
         <div class="card-body">
             <div class="row">
-                <div class="col-md-4 mb-3">
+                <div class="col-md-3 mb-3">
                     <a href="post_job.php" class="btn btn-block btn-outline-primary">
                         <i class="fa fa-plus-circle"></i> Post New Job
                     </a>
                 </div>
-                <div class="col-md-4 mb-3">
+                <div class="col-md-3 mb-3">
                     <a href="applications.php" class="btn btn-block btn-outline-success">
                         <i class="fa fa-users"></i> Review Applications
                     </a>
                 </div>
-                <div class="col-md-4 mb-3">
+                <div class="col-md-3 mb-3">
                     <a href="search_candidates.php" class="btn btn-block btn-outline-info">
                         <i class="fa fa-search"></i> Search Candidates
+                    </a>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <a href="edit_profile.php" class="btn btn-block btn-outline-danger">
+                        <i class="fa fa-user-edit"></i> Edit Profile
                     </a>
                 </div>
             </div>
