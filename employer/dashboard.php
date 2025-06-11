@@ -88,6 +88,19 @@ if ($jobCountResult && mysqli_num_rows($jobCountResult) > 0) {
     $jobCountData = mysqli_fetch_assoc($jobCountResult);
     $activeJobs = $jobCountData['count'];
 }
+
+// Get recent job postings (limit to 5)
+$recentJobsQuery = "SELECT id, title, job_type, location, created_at, status FROM job_postings 
+                    WHERE user_id = $userId 
+                    ORDER BY created_at DESC LIMIT 5";
+$recentJobsResult = mysqli_query($conn, $recentJobsQuery);
+$recentJobs = [];
+
+if ($recentJobsResult && mysqli_num_rows($recentJobsResult) > 0) {
+    while ($row = mysqli_fetch_assoc($recentJobsResult)) {
+        $recentJobs[] = $row;
+    }
+}
 ?>
 
 <div class="container">
@@ -157,6 +170,69 @@ if ($jobCountResult && mysqli_num_rows($jobCountResult) > 0) {
                     <a href="company_profile.php" class="btn btn-outline-info">View Profile Stats</a>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- My Jobs Table -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="m-0">My Job Postings</h5>
+        </div>
+        <div class="card-body">
+            <?php if (empty($recentJobs)): ?>
+                <div class="alert alert-info">
+                    You haven't posted any jobs yet. Use the form below to post your first job!
+                </div>
+            <?php else: ?>
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="thead-dark">
+                            <tr>
+                                <th>Job Title</th>
+                                <th>Type</th>
+                                <th>Location</th>
+                                <th>Posted On</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($recentJobs as $job): ?>
+                                <tr>
+                                    <td><?php echo htmlspecialchars($job['title']); ?></td>
+                                    <td><span class="badge badge-primary"><?php echo htmlspecialchars($job['job_type']); ?></span></td>
+                                    <td><?php echo htmlspecialchars($job['location'] ?: 'N/A'); ?></td>
+                                    <td><?php echo date('M d, Y', strtotime($job['created_at'])); ?></td>
+                                    <td>
+                                        <?php 
+                                            $statusClass = '';
+                                            switch($job['status']) {
+                                                case 'Published': $statusClass = 'success'; break;
+                                                case 'Draft': $statusClass = 'warning'; break;
+                                                case 'Closed': $statusClass = 'danger'; break;
+                                                case 'Filled': $statusClass = 'info'; break;
+                                            }
+                                        ?>
+                                        <span class="badge badge-<?php echo $statusClass; ?>">
+                                            <?php echo htmlspecialchars($job['status']); ?>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <a href="edit_job.php?id=<?php echo $job['id']; ?>" class="btn btn-sm btn-outline-primary">Edit</a>
+                                        <a href="view_applications.php?job_id=<?php echo $job['id']; ?>" class="btn btn-sm btn-outline-success">Applications</a>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <?php if (count($recentJobs) >= 5): ?>
+                    <div class="text-center mt-3">
+                        <a href="job_listings.php" class="btn btn-outline-primary">View All Job Postings</a>
+                    </div>
+                <?php endif; ?>
+            <?php endif; ?>
         </div>
     </div>
     
@@ -248,36 +324,6 @@ if ($jobCountResult && mysqli_num_rows($jobCountResult) > 0) {
                     <a href="edit_profile.php" class="btn btn-block btn-outline-danger">
                         <i class="fa fa-user-edit"></i> Edit Profile
                     </a>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Profile completion reminder -->
-    <div class="row">
-        <div class="col-md-6">
-            <div class="card bg-light mb-4">
-                <div class="card-body">
-                    <h5 class="card-title">Complete Your Company Profile</h5>
-                    <p class="card-text">A complete company profile attracts more qualified candidates. Add your company details, logo, and description.</p>
-                    <div class="progress mb-3">
-                        <div class="progress-bar bg-warning" role="progressbar" style="width: 40%;" aria-valuenow="40" aria-valuemin="0" aria-valuemax="100">40%</div>
-                    </div>
-                    <a href="company_profile.php" class="btn btn-warning">Complete Profile</a>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-6">
-            <div class="card mb-4">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="m-0">Recent Activity</h5>
-                </div>
-                <div class="card-body">
-                    <div class="alert alert-info">
-                        <p>Welcome to your employer dashboard!</p>
-                        <p>This is where you'll see recent activities like new applications and messages.</p>
-                    </div>
                 </div>
             </div>
         </div>
