@@ -136,6 +136,23 @@ if ($recentJobsResult && mysqli_num_rows($recentJobsResult) > 0) {
         </div>
     </div>
     
+    <!-- View As Jobseeker Card -->
+    <div class="card mb-4 border-info">
+        <div class="card-body">
+            <div class="d-flex align-items-center">
+                <div>
+                    <h5 class="text-info"><i class="fa fa-eye"></i> Employer Tip</h5>
+                    <p class="mb-0">See how your jobs appear to jobseekers by viewing the jobseeker interface.</p>
+                </div>
+                <div class="ml-auto">
+                    <a href="../jobseeker/jobs.php" target="_blank" class="btn btn-info">
+                        <i class="fa fa-external-link-alt"></i> View Jobs as Jobseekers
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <!-- Dashboard stats -->
     <div class="row">
         <div class="col-md-4">
@@ -197,7 +214,7 @@ if ($recentJobsResult && mysqli_num_rows($recentJobsResult) > 0) {
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($recentJobs as $job): ?>
+                            <?php foreach($recentJobs as $job): ?>
                                 <tr>
                                     <td><?php echo htmlspecialchars($job['title']); ?></td>
                                     <td><span class="badge badge-primary"><?php echo htmlspecialchars($job['job_type']); ?></span></td>
@@ -220,6 +237,7 @@ if ($recentJobsResult && mysqli_num_rows($recentJobsResult) > 0) {
                                     <td>
                                         <a href="edit_job.php?id=<?php echo $job['id']; ?>" class="btn btn-sm btn-outline-primary">Edit</a>
                                         <a href="view_applications.php?job_id=<?php echo $job['id']; ?>" class="btn btn-sm btn-outline-success">Applications</a>
+                                        <a href="../jobseeker/view_job.php?id=<?php echo $job['id']; ?>" class="btn btn-sm btn-outline-info" target="_blank">Preview</a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
