@@ -1,0 +1,148 @@
+/* 
+* Job Portal - Main Stylesheet
+* Compatible with PHP5-era projects (circa 2009-2014)
+*/
+
+/* General Styles */
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    line-height: 1.6;
+    color: #333;
+    background-color: #f8f9fa;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    margin-bottom: 15px;
+}
+
+a {
+    color: #007bff;
+}
+
+a:hover {
+    color: #0056b3;
+    text-decoration: none;
+}
+
+/* Custom Container for Main Content */
+.content-container {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    margin-bottom: 30px;
+}
+
+/* Homepage Styles */
+.jumbotron {
+    background: linear-gradient(135deg, #4a8eff 0%, #355eb3 100%);
+    color: white;
+    padding: 100px 0;
+    margin-bottom: 30px;
+}
+
+.jumbotron h1 {
+    font-size: 3rem;
+    font-weight: bold;
+    margin-bottom: 20px;
+}
+
+.jumbotron p {
+    font-size: 1.2rem;
+    margin-bottom: 30px;
+}
+
+.buttons {
+    margin-top: 25px;
+}
+
+.buttons .btn {
+    margin: 0 10px;
+    padding: 10px 25px;
+}
+
+/* Job Listing Styles */
+.job-listing {
+    border-bottom: 1px solid #eee;
+    padding: 20px 0;
+}
+
+.job-listing:last-child {
+    border-bottom: none;
+}
+
+.job-title {
+    font-weight: bold;
+    color: #333;
+    font-size: 1.2rem;
+}
+
+.company-name {
+    color: #777;
+    font-size: 1rem;
+}
+
+.job-location {
+    color: #555;
+    margin-bottom: 10px;
+}
+
+/* Form Styles */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-control {
+    border-radius: 3px;
+    padding: 10px;
+    border: 1px solid #ddd;
+}
+
+/* Button Styles */
+.btn {
+    border-radius: 3px;
+    padding: 8px 15px;
+    transition: all 0.3s ease;
+}
+
+.btn-primary {
+    background-color: #007bff;
+    border-color: #007bff;
+}
+
+.btn-primary:hover {
+    background-color: #0069d9;
+    border-color: #0062cc;
+}
+
+.btn-success {
+    background-color: #28a745;
+    border-color: #28a745;
+}
+
+.btn-success:hover {
+    background-color: #218838;
+    border-color: #1e7e34;
+}
+
+/* Footer Styles */
+footer {
+    margin-top: 50px;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .jumbotron {
+        padding: 60px 0;
+    }
+    
+    .jumbotron h1 {
+        font-size: 2.5rem;
+    }
+    
+    .buttons .btn {
+        display: block;
+        margin: 10px auto;
+        width: 80%;
+    }
+}
