@@ -37,3 +37,22 @@ CREATE TABLE `users` (
   UNIQUE KEY `username` (`username`),
   UNIQUE KEY `email` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+
+CREATE TABLE job_postings (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    employer_id INT NOT NULL,
+    title VARCHAR(100) NOT NULL,
+    description TEXT NOT NULL,
+    requirements TEXT,
+    location VARCHAR(100),
+    job_type ENUM('Full-time', 'Part-time', 'Contract', 'Internship', 'Temporary') NOT NULL,
+    salary_min DECIMAL(10, 2),
+    salary_max DECIMAL(10, 2),
+    salary_period ENUM('Hourly', 'Daily', 'Weekly', 'Monthly', 'Yearly'),
+    status ENUM('Draft', 'Published', 'Closed', 'Filled') NOT NULL DEFAULT 'Published',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    expiry_date DATE,
+    FOREIGN KEY (employer_id) REFERENCES employers(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
