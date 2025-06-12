@@ -15,141 +15,56 @@ $pageTitle = "Employer Dashboard | Job Portal";
 // Include header
 include_once($includePath . "header.php");
 
-// Process job posting form submission
-$message = '';
-$error = '';
-
-if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['post_job'])) {
-    // Get form data
-    $jobTitle = trim($_POST['job_title']);
-    $jobDescription = trim($_POST['job_description']);
-    $jobRequirements = trim($_POST['job_requirements']);
-    $jobLocation = trim($_POST['job_location']);
-    $jobType = $_POST['job_type'];
-    $companyNameFromForm = trim($_POST['company_name']);
-    
-    // Validate input
-    if (empty($jobTitle) || empty($jobDescription) || empty($companyNameFromForm)) {
-        $error = "Job title, description, and company name are required.";
-    } else {
-        // Insert job posting into database
-        $userId = $_SESSION['user_id'];
-        
-        // Use prepared statement to prevent SQL injection
-        $stmt = mysqli_prepare($conn, "INSERT INTO job_postings (user_id, company_name, title, description, requirements, location, job_type) 
-                                      VALUES (?, ?, ?, ?, ?, ?, ?)");
-        
-        mysqli_stmt_bind_param($stmt, "issssss", $userId, $companyNameFromForm, $jobTitle, $jobDescription, $jobRequirements, $jobLocation, $jobType);
-        
-        if (mysqli_stmt_execute($stmt)) {
-            $message = "Job posting created successfully!";
-        } else {
-            $error = "Error posting job: " . mysqli_error($conn);
-        }
-        
-        mysqli_stmt_close($stmt);
-    }
-}
-
-// Get user data
+// Get user ID from session
 $userId = $_SESSION['user_id'];
-$query = "SELECT * FROM users WHERE id = $userId";
+
+// Fetch employer data from database
+$query = "SELECT u.first_name, u.last_name, u.username, u.email, u.phone, 
+          e.company_name, e.industry, e.company_description 
+          FROM users u 
+          LEFT JOIN employers e ON u.id = e.user_id 
+          WHERE u.id = $userId";
+
 $result = mysqli_query($conn, $query);
 
 if($result && mysqli_num_rows($result) > 0) {
-    $userData = mysqli_fetch_assoc($result);
-    $userFirstName = $userData['first_name'];
-    $userLastName = $userData['last_name'];
-    $username = $userData['username'];
-    
-    // Get employer specific data
-    $employerQuery = "SELECT * FROM employers WHERE user_id = $userId";
-    $employerResult = mysqli_query($conn, $employerQuery);
-    
-    if($employerResult && mysqli_num_rows($employerResult) > 0) {
-        $employerData = mysqli_fetch_assoc($employerResult);
-        $companyName = $employerData['company_name'];
-    } else {
-        $companyName = "Your Company";
-    }
+    $employerData = mysqli_fetch_assoc($result);
+    $userFirstName = $employerData['first_name'];
+    $userLastName = $employerData['last_name'];
+    $username = $employerData['username'];
+    $companyName = $employerData['company_name'];
 } else {
+    // Handle error - couldn't find employer data
     $userFirstName = "User";
     $userLastName = "";
     $username = "user";
-    $companyName = "Your Company";
+    $companyName = "Company";
 }
 
-// Get job count
-$jobCountQuery = "SELECT COUNT(*) as count FROM job_postings WHERE user_id = $userId AND status != 'Closed'";
-$jobCountResult = mysqli_query($conn, $jobCountQuery);
+// Count active jobs
+$queryActiveJobs = "SELECT COUNT(*) as active_jobs FROM job_postings WHERE user_id = $userId AND status = 'Published'";
+$resultActiveJobs = mysqli_query($conn, $queryActiveJobs);
 $activeJobs = 0;
 
-if ($jobCountResult && mysqli_num_rows($jobCountResult) > 0) {
-    $jobCountData = mysqli_fetch_assoc($jobCountResult);
-    $activeJobs = $jobCountData['count'];
+if($resultActiveJobs && mysqli_num_rows($resultActiveJobs) > 0) {
+    $activeJobsData = mysqli_fetch_assoc($resultActiveJobs);
+    $activeJobs = $activeJobsData['active_jobs'];
 }
 
-// Get recent job postings (limit to 5)
-$recentJobsQuery = "SELECT id, title, job_type, location, created_at, status FROM job_postings 
-                    WHERE user_id = $userId 
-                    ORDER BY created_at DESC LIMIT 5";
-$recentJobsResult = mysqli_query($conn, $recentJobsQuery);
-$recentJobs = [];
-
-if ($recentJobsResult && mysqli_num_rows($recentJobsResult) > 0) {
-    while ($row = mysqli_fetch_assoc($recentJobsResult)) {
-        $recentJobs[] = $row;
-    }
-}
+// Count applications (placeholder logic)
+$applications = 0;
 ?>
 
 <div class="container">
-    <?php if (!empty($message)): ?>
-        <div class="alert alert-success alert-dismissible fade show mt-3" role="alert">
-            <?php echo $message; ?>
-            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-            </button>
-        </div>
-    <?php endif; ?>
+    <h1 class="mt-4">Employer Dashboard</h1>
     
-    <?php if (!empty($error)): ?>
-        <div class="alert alert-danger alert-dismissible fade show mt-3" role="alert">
-            <?php echo $error; ?>
-            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-            </button>
-        </div>
-    <?php endif; ?>
-
-    <!-- Welcome Banner -->
-    <div class="jumbotron bg-dark text-white">
-        <h2>Welcome, <?php echo htmlspecialchars($userFirstName); ?>!</h2>
-        <h3 class="text-warning mb-3">Managing: <span class="badge badge-warning"><?php echo htmlspecialchars($companyName); ?></span></h3>
-        <p class="lead">This is your employer dashboard where you can post jobs, manage applications, and find the right talent for your company.</p>
-        <hr class="my-4 bg-light">
-        <p>Start posting jobs or review applications from potential candidates.</p>
-        <div class="mt-4">
-            <a class="btn btn-primary btn-lg" href="#post-job-form" role="button">Post a Job</a>
+    <div class="jumbotron bg-primary text-white">
+        <h2>Welcome, <?php echo htmlspecialchars($userFirstName . ' ' . $userLastName); ?>!</h2>
+        <p>Manage your job postings and applications from your employer dashboard.</p>
+        <div class="buttons mt-4">
+            <a class="btn btn-light btn-lg" href="post_job.php" role="button">Post a Job</a>
             <a class="btn btn-outline-light btn-lg" href="company_profile.php" role="button">Edit Company Profile</a>
             <a class="btn btn-danger btn-lg" href="edit_profile.php" role="button">Edit Profile</a>
-        </div>
-    </div>
-    
-    <!-- View As Jobseeker Card -->
-    <div class="card mb-4 border-info">
-        <div class="card-body">
-            <div class="d-flex align-items-center">
-                <div>
-                    <h5 class="text-info"><i class="fa fa-eye"></i> Employer Tip</h5>
-                    <p class="mb-0">See how your jobs appear to jobseekers by viewing the jobseeker interface.</p>
-                </div>
-                <div class="ml-auto">
-                    <a href="../jobseeker/jobs.php" target="_blank" class="btn btn-info">
-                        <i class="fa fa-external-link-alt"></i> View Jobs as Jobseekers
-                    </a>
-                </div>
-            </div>
         </div>
     </div>
     
@@ -172,7 +87,7 @@ if ($recentJobsResult && mysqli_num_rows($recentJobsResult) > 0) {
                     <h5 class="m-0">Job Applications</h5>
                 </div>
                 <div class="card-body text-center">
-                    <p class="card-text display-4">0</p>
+                    <p class="card-text display-4"><?php echo $applications; ?></p>
                     <a href="applications.php" class="btn btn-outline-success">View Applications</a>
                 </div>
             </div>
@@ -189,126 +104,6 @@ if ($recentJobsResult && mysqli_num_rows($recentJobsResult) > 0) {
             </div>
         </div>
     </div>
-
-    <!-- My Jobs Table -->
-    <div class="card mb-4">
-        <div class="card-header bg-primary text-white">
-            <h5 class="m-0">My Job Postings</h5>
-        </div>
-        <div class="card-body">
-            <?php if (empty($recentJobs)): ?>
-                <div class="alert alert-info">
-                    You haven't posted any jobs yet. Use the form below to post your first job!
-                </div>
-            <?php else: ?>
-                <div class="table-responsive">
-                    <table class="table table-striped table-hover">
-                        <thead class="thead-dark">
-                            <tr>
-                                <th>Job Title</th>
-                                <th>Type</th>
-                                <th>Location</th>
-                                <th>Posted On</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach($recentJobs as $job): ?>
-                                <tr>
-                                    <td><?php echo htmlspecialchars($job['title']); ?></td>
-                                    <td><span class="badge badge-primary"><?php echo htmlspecialchars($job['job_type']); ?></span></td>
-                                    <td><?php echo htmlspecialchars($job['location'] ?: 'N/A'); ?></td>
-                                    <td><?php echo date('M d, Y', strtotime($job['created_at'])); ?></td>
-                                    <td>
-                                        <?php 
-                                            $statusClass = '';
-                                            switch($job['status']) {
-                                                case 'Published': $statusClass = 'success'; break;
-                                                case 'Draft': $statusClass = 'warning'; break;
-                                                case 'Closed': $statusClass = 'danger'; break;
-                                                case 'Filled': $statusClass = 'info'; break;
-                                            }
-                                        ?>
-                                        <span class="badge badge-<?php echo $statusClass; ?>">
-                                            <?php echo htmlspecialchars($job['status']); ?>
-                                        </span>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-                
-                <?php if (count($recentJobs) >= 5): ?>
-                    <div class="text-center mt-3">
-                        <a href="job_listings.php" class="btn btn-outline-primary">View All Job Postings</a>
-                    </div>
-                <?php endif; ?>
-            <?php endif; ?>
-        </div>
-    </div>
-    
-    <!-- Post Job Form Section -->
-    <div id="post-job-form" class="card mb-4">
-        <div class="card-header bg-primary text-white">
-            <h5 class="m-0">Post a New Job</h5>
-        </div>
-        <div class="card-body">
-            <form action="dashboard.php" method="post">
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label for="company_name">Company Name*</label>
-                            <input type="text" class="form-control" id="company_name" name="company_name" value="<?php echo htmlspecialchars($companyName); ?>" required>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label for="job_title">Job Title*</label>
-                            <input type="text" class="form-control" id="job_title" name="job_title" placeholder="e.g. Senior Web Developer" required>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="job_description">Job Description*</label>
-                    <textarea class="form-control" id="job_description" name="job_description" rows="4" required 
-                        placeholder="Describe the job responsibilities, benefits, and other details"></textarea>
-                </div>
-
-                <div class="form-group">
-                    <label for="job_requirements">Requirements</label>
-                    <textarea class="form-control" id="job_requirements" name="job_requirements" rows="3" 
-                        placeholder="List required qualifications, skills, and experience"></textarea>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label for="job_location">Location</label>
-                            <input type="text" class="form-control" id="job_location" name="job_location" placeholder="e.g. New York, NY or Remote">
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label for="job_type">Job Type*</label>
-                            <select class="form-control" id="job_type" name="job_type" required>
-                                <option value="Full-time">Full-time</option>
-                                <option value="Part-time">Part-time</option>
-                                <option value="Contract">Contract</option>
-                                <option value="Internship">Internship</option>
-                                <option value="Temporary">Temporary</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="text-center mt-3">
-                    <button type="submit" name="post_job" class="btn btn-primary">Post Job</button>
-                </div>
-            </form>
-        </div>
-    </div>
     
     <!-- Quick Actions -->
     <div class="card mb-4">
@@ -318,7 +113,7 @@ if ($recentJobsResult && mysqli_num_rows($recentJobsResult) > 0) {
         <div class="card-body">
             <div class="row">
                 <div class="col-md-3 mb-3">
-                    <a href="#post-job-form" class="btn btn-block btn-outline-primary">
+                    <a href="post_job.php" class="btn btn-block btn-outline-primary">
                         <i class="fa fa-plus-circle"></i> Post New Job
                     </a>
                 </div>
@@ -336,6 +131,55 @@ if ($recentJobsResult && mysqli_num_rows($recentJobsResult) > 0) {
                     <a href="edit_profile.php" class="btn btn-block btn-outline-danger">
                         <i class="fa fa-user-edit"></i> Edit Profile
                     </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Profile completion reminder -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card bg-light mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Complete Your Company Profile</h5>
+                    <p class="card-text">A complete company profile attracts more qualified candidates. Add your company details, logo, and description.</p>
+                    <div class="progress mb-3">
+                        <div class="progress-bar bg-warning" role="progressbar" style="width: 40%;" aria-valuenow="40" aria-valuemin="0" aria-valuemax="100">40%</div>
+                    </div>
+                    <a href="company_profile.php" class="btn btn-warning">Complete Profile</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="m-0">Recent Activity</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <p>Welcome to your employer dashboard!</p>
+                        <p>This is where you'll see recent activities like new applications and messages.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Subscription Info -->
+    <div class="card border-dark mb-4">
+        <div class="card-header bg-dark text-white">
+            <h5 class="m-0">Account Status</h5>
+        </div>
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h5>Current Plan: <span class="badge badge-primary">Free</span></h5>
+                    <p>You're currently on our Free plan with basic features.</p>
+                    <p>Upgrade your plan to access premium features like featured job postings, candidate search, and analytics.</p>
+                </div>
+                <div class="col-md-6 text-center">
+                    <a href="subscription.php" class="btn btn-success btn-lg">Upgrade Your Plan</a>
                 </div>
             </div>
         </div>
@@ -389,7 +233,6 @@ if ($recentJobsResult && mysqli_num_rows($recentJobsResult) > 0) {
                     </table>
                     <div class="text-right">
                         <a href="company_profile.php" class="btn btn-outline-secondary">Edit Company Details</a>
-                        <a href="edit_profile.php" class="btn btn-outline-danger">Edit User Profile</a>
                     </div>
                 </div>
             </div>
