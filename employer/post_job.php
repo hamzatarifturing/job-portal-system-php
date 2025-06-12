@@ -78,9 +78,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $userId, $company_name, $title, $description, $requirements, $location, 
                 $job_type, $salary_min, $salary_max, $salary_period, $status, $expiry_date);
             
-            // Execute the statement
-            if(mysqli_stmt_execute($stmt)) {
+             // Execute the statement
+             if(mysqli_stmt_execute($stmt)) {
+                $job_id = mysqli_insert_id($conn);
                 $success = "Job posted successfully!";
+                
+                // If job is published, redirect to view job page
+                if($status == 'Published') {
+                    header("Location: view_job.php?id=" . $job_id);
+                    exit();
+                }
                 
                 // Reset form fields after successful submission
                 if($status != 'Draft') {
@@ -118,7 +125,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             <?php endif; ?>
             
             <?php if(!empty($success)): ?>
-                <div class="alert alert-success"><?php echo $success; ?></div>
+                <div class="alert alert-success">
+                    <?php echo $success; ?>
+                    <?php if(isset($job_id) && $job_id > 0): ?>
+                        <a href="view_job.php?id=<?php echo $job_id; ?>" class="alert-link">View this job posting</a>
+                    <?php endif; ?>
+                </div>
             <?php endif; ?>
             
             <div class="card mb-4">
