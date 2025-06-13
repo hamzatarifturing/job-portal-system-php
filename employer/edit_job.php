@@ -124,271 +124,161 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 }
 ?>
-<div>
-<div class="row">
-    <div class="col-md-12">
-<h1>
-Edit Job
 
-</h1>
-<nav>
-<ol>
-<li>
-<a>
-Dashboard
-
-</a>
-</li>
-<li>
-<a>
-">View Job
-
-</a>
-</li>
-<li>
-Edit Job
-
-</li>
-</ol>
-</nav>
-        <?php if(!empty($error)): ?>
-            <div class="alert alert-danger"><?php echo $error; ?>
-</div>
-            <?php if(strpos($error, "Invalid") !== false || strpos($error, "not found") !== false): ?>
-<div>
-<a>
-Back to My Jobs
-
-</a>
-</div>
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <h1 class="mt-4 mb-3">Edit Job</h1>
+            
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="dashboard.php">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="view_job.php?id=<?php echo $job_id; ?>">View Job</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Edit Job</li>
+                </ol>
+            </nav>
+            
+            <?php if(!empty($error)): ?>
+                <div class="alert alert-danger"><?php echo $error; ?></div>
+                <?php if(strpos($error, "Invalid") !== false || strpos($error, "not found") !== false): ?>
+                    <div class="text-center">
+                        <a href="job_listings.php" class="btn btn-primary">Back to My Jobs</a>
+                    </div>
+                <?php endif; ?>
             <?php endif; ?>
-        <?php endif; ?>
-        
-        <?php if(!empty($success)): ?>
-<div>
-                <?php echo $success; ?>
-<a>
-" class="alert-link">View this job posting
-
-</a>
-</div>
-        <?php endif; ?>
-        
-        <?php if(empty($error) || strpos($error, "Invalid") === false && strpos($error, "not found") === false): ?>
-<div>
-                <div class="card-header bg-primary text-white">
-<h5>
-Job Details
-
-</h5>
-</div>
-<div>
-                    <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post" class="needs-validation" novalidate>
-                        <input type="hidden" name="job_id" value="<?php echo $job_id; ?>">
-                        
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-<label>
-Company Name
-
-<span>
-</span>
-</label>
-                                    <input type="text" class="form-control" id="company_name" name="company_name" value="<?php echo htmlspecialchars($company_name); ?>" required>
-                                    <div class="invalid-feedback">Please provide your company name.
-</div>
-                                </div>
-                            </div>
-<div>
-                                <div class="form-group">
-<label>
-Job Title
-
-<span>
-</span>
-</label>
-                                    <input type="text" class="form-control" id="title" name="title" value="<?php echo htmlspecialchars($title); ?>" required>
-                                    <div class="invalid-feedback">Please provide a job title.
-</div>
-                                </div>
-                            </div>
-                        </div>
-<div>
-<label>
-Job Description
-
-<span>
-</span>
-</label>
-<textarea>
-<?php echo htmlspecialchars($description); ?>
-</textarea>
-                            <div class="invalid-feedback">Please provide a job description.
-</div>
-                        </div>
-<div>
-<label>
-Job Requirements
-
-</label>
-<textarea>
-<?php echo htmlspecialchars($requirements); ?>
-</textarea>
-</div>
-<div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-<label>
-Location
-
-</label>
-                                    <input type="text" class="form-control" id="location" name="location" value="<?php echo htmlspecialchars($location); ?>">
-</div>
-                            </div>
-<div>
-                                <div class="form-group">
-<label>
-Job Type
-
-<span>
-</span>
-</label>
-<select>
-<option>
-Select Job Type
-
-</option>
-<option>
-Full-time
-
-</option>
-<option>
-Part-time
-
-</option>
-<option>
-Contract
-
-</option>
-<option>
-Internship
-
-</option>
-<option>
-Temporary
-
-</option>
-</select>
-</div>
-                            </div>
-                        </div>
-<div>
-                            <div class="col-md-4">
-                                <div class="form-group">
-<label>
-Minimum Salary
-
-</label>
-                                    <input type="number" step="0.01" min="0" class="form-control" id="salary_min" name="salary_min" value="<?php echo $salary_min > 0 ? htmlspecialchars($salary_min) : ''; ?>">
-</div>
-                            </div>
-<div>
-                                <div class="form-group">
-<label>
-Maximum Salary
-
-</label>
-                                    <input type="number" step="0.01" min="0" class="form-control" id="salary_max" name="salary_max" value="<?php echo $salary_max > 0 ? htmlspecialchars($salary_max) : ''; ?>">
-</div>
-                            </div>
-<div>
-                                <div class="form-group">
-<label>
-Salary Period
-
-</label>
-<select>
-<option>
-Select Period
-
-</option>
-<option>
-Hourly
-
-</option>
-<option>
-Daily
-
-</option>
-<option>
-Weekly
-
-</option>
-<option>
-Monthly
-
-</option>
-<option>
-Yearly
-
-</option>
-</select>
-</div>
-                            </div>
-                        </div>
-<div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-<label>
-Status
-
-<span>
-</span>
-</label>
-<select>
-<option>
-Draft
-
-</option>
-<option>
-Published
-
-</option>
-<option>
-Closed
-
-</option>
-<option>
-Filled
-
-</option>
-</select>
-</div>
-                            </div>
-<div>
-                                <div class="form-group">
-<label>
-Expiry Date
-
-</label>
-                                    <input type="date" class="form-control" id="expiry_date" name="expiry_date" value="<?php echo htmlspecialchars($expiry_date); ?>">
-</div>
-                            </div>
-                        </div>
-<div>
-<button type="submit">
-Save Changes
-
-</button>
-<a href="#" class="btn btn-outline-secondary btn-lg ml-2">Cancel
-
-</a>
-</div>
-                    </form>
+            
+            <?php if(!empty($success)): ?>
+                <div class="alert alert-success">
+                    <?php echo $success; ?>
+                    <a href="view_job.php?id=<?php echo $job_id; ?>" class="alert-link">View this job posting</a>
                 </div>
-            </div>
-        <?php endif; ?>
+            <?php endif; ?>
+            
+            <?php if(empty($error) || strpos($error, "Invalid") === false && strpos($error, "not found") === false): ?>
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="m-0">Job Details</h5>
+                    </div>
+                    <div class="card-body">
+                        <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post" class="needs-validation" novalidate>
+                            <input type="hidden" name="job_id" value="<?php echo $job_id; ?>">
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="company_name">Company Name <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="company_name" name="company_name" value="<?php echo htmlspecialchars($company_name); ?>" required>
+                                        <div class="invalid-feedback">Please provide your company name.</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="title">Job Title <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="title" name="title" value="<?php echo htmlspecialchars($title); ?>" required>
+                                        <div class="invalid-feedback">Please provide a job title.</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="description">Job Description <span class="text-danger">*</span></label>
+                                <textarea class="form-control" id="description" name="description" rows="5" required><?php echo htmlspecialchars($description); ?></textarea>
+                                <div class="invalid-feedback">Please provide a job description.</div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="requirements">Job Requirements</label>
+                                <textarea class="form-control" id="requirements" name="requirements" rows="4"><?php echo htmlspecialchars($requirements); ?></textarea>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="location">Location</label>
+                                        <input type="text" class="form-control" id="location" name="location" value="<?php echo htmlspecialchars($location); ?>">
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="job_type">Job Type <span class="text-danger">*</span></label>
+                                        <select class="form-control" id="job_type" name="job_type" required>
+                                            <option value="">Select Job Type</option>
+                                            <option value="Full-time" <?php if($job_type == 'Full-time') echo 'selected'; ?>>Full-time</option>
+                                            <option value="Part-time" <?php if($job_type == 'Part-time') echo 'selected'; ?>>Part-time</option>
+                                            <option value="Contract" <?php if($job_type == 'Contract') echo 'selected'; ?>>Contract</option>
+                                            <option value="Internship" <?php if($job_type == 'Internship') echo 'selected'; ?>>Internship</option>
+                                            <option value="Temporary" <?php if($job_type == 'Temporary') echo 'selected'; ?>>Temporary</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="salary_min">Minimum Salary</label>
+                                        <input type="number" step="0.01" min="0" class="form-control" id="salary_min" name="salary_min" value="<?php echo $salary_min > 0 ? htmlspecialchars($salary_min) : ''; ?>">
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="salary_max">Maximum Salary</label>
+                                        <input type="number" step="0.01" min="0" class="form-control" id="salary_max" name="salary_max" value="<?php echo $salary_max > 0 ? htmlspecialchars($salary_max) : ''; ?>">
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="salary_period">Salary Period</label>
+                                        <select class="form-control" id="salary_period" name="salary_period">
+                                            <option value="">Select Period</option>
+                                            <option value="Hourly" <?php if($salary_period == 'Hourly') echo 'selected'; ?>>Hourly</option>
+                                            <option value="Daily" <?php if($salary_period == 'Daily') echo 'selected'; ?>>Daily</option>
+                                            <option value="Weekly" <?php if($salary_period == 'Weekly') echo 'selected'; ?>>Weekly</option>
+                                            <option value="Monthly" <?php if($salary_period == 'Monthly') echo 'selected'; ?>>Monthly</option>
+                                            <option value="Yearly" <?php if($salary_period == 'Yearly') echo 'selected'; ?>>Yearly</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="status">Status <span class="text-danger">*</span></label>
+                                        <select class="form-control" id="status" name="status" required>
+                                            <option value="Draft" <?php if($status == 'Draft') echo 'selected'; ?>>Draft</option>
+                                            <option value="Published" <?php if($status == 'Published') echo 'selected'; ?>>Published</option>
+                                            <option value="Closed" <?php if($status == 'Closed') echo 'selected'; ?>>Closed</option>
+                                            <option value="Filled" <?php if($status == 'Filled') echo 'selected'; ?>>Filled</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="expiry_date">Expiry Date</label>
+                                        <input type="date" class="form-control" id="expiry_date" name="expiry_date" value="<?php echo htmlspecialchars($expiry_date); ?>">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group mt-4">
+                                <button type="submit" class="btn btn-primary btn-lg">Save Changes</button>
+                                <a href="view_job.php?id=<?php echo $job_id; ?>" class="btn btn-outline-secondary btn-lg ml-2">Cancel</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            <?php endif; ?>
+        </div>
     </div>
 </div>
-</div> <?php // Include footer include_once($includePath . "footer.php"); ?>
+
+<?php
+// Include footer
+include_once($includePath . "footer.php");
+?>
