@@ -42,8 +42,8 @@ $jobId = intval($_GET['id']);
 
 // Query to fetch the job details including employer information
 $query = "SELECT j.*, 
-            u.company_name, u.company_logo, u.website, u.industry, 
-            u.company_size, u.company_description, u.location as company_location
+            u.company_logo, u.website, u.industry, u.company_size, 
+            u.company_description, u.address, u.city, u.state, u.country
         FROM job_postings j
         LEFT JOIN users u ON j.user_id = u.id
         WHERE j.id = ? AND j.status = 'Published' 
@@ -237,15 +237,6 @@ $postedDisplay = ($postedDaysAgo == 0) ? "Today" : (($postedDaysAgo == 1) ? "Yes
                     </div>
                     <?php endif; ?>
 
-                    <!-- Benefits -->
-                    <?php if (!empty($job['benefits'])): ?>
-                    <div class="mb-4">
-                        <h5>Benefits</h5>
-                        <div class="job-benefits">
-                            <?php echo nl2br(htmlspecialchars($job['benefits'])); ?>
-                        </div>
-                    </div>
-                    <?php endif; ?>
                 </div>
 
                 <!-- Right column: Apply button and company details -->
@@ -285,8 +276,18 @@ $postedDisplay = ($postedDaysAgo == 0) ? "Today" : (($postedDaysAgo == 1) ? "Yes
                                 <p><strong>Company Size:</strong> <?php echo htmlspecialchars($job['company_size']); ?></p>
                             <?php endif; ?>
                             
-                            <?php if (!empty($job['company_location'])): ?>
-                                <p><strong>Headquarters:</strong> <?php echo htmlspecialchars($job['company_location']); ?></p>
+                            <?php 
+                            $companyLocation = '';
+                            if (!empty($job['city']) || !empty($job['state']) || !empty($job['country'])) {
+                                $locationParts = [];
+                                if (!empty($job['city'])) $locationParts[] = $job['city'];
+                                if (!empty($job['state'])) $locationParts[] = $job['state'];
+                                if (!empty($job['country'])) $locationParts[] = $job['country'];
+                                $companyLocation = implode(', ', $locationParts);
+                            }
+                            if (!empty($companyLocation)): 
+                            ?>
+                                <p><strong>Headquarters:</strong> <?php echo htmlspecialchars($companyLocation); ?></p>
                             <?php endif; ?>
                             
                             <?php if (!empty($job['website'])): ?>
@@ -341,21 +342,20 @@ $postedDisplay = ($postedDaysAgo == 0) ? "Today" : (($postedDaysAgo == 1) ? "Yes
 
     <!-- Related jobs section -->
     <?php
-    // Get related jobs based on the same job type or category
+    // Get related jobs based on the same job type
     $relatedJobsQuery = "SELECT id, title, company_name, location, job_type, created_at 
-                        FROM job_postings j
-                        LEFT JOIN users u ON j.user_id = u.id
-                        WHERE j.id != ? 
-                        AND j.status = 'Published' 
-                        AND (j.expiry_date IS NULL OR j.expiry_date >= CURDATE())
-                        AND (j.job_type = ? OR j.category = ?)
-                        ORDER BY j.created_at DESC
+                        FROM job_postings
+                        WHERE id != ? 
+                        AND status = 'Published' 
+                        AND (expiry_date IS NULL OR expiry_date >= CURDATE())
+                        AND job_type = ?
+                        ORDER BY created_at DESC
                         LIMIT 3";
                         
     $relStmt = mysqli_prepare($conn, $relatedJobsQuery);
     
     if ($relStmt) {
-        mysqli_stmt_bind_param($relStmt, "iss", $jobId, $job['job_type'], $job['category']);
+        mysqli_stmt_bind_param($relStmt, "is", $jobId, $job['job_type']);
         mysqli_stmt_execute($relStmt);
         $relatedResult = mysqli_stmt_get_result($relStmt);
         
