@@ -72,8 +72,8 @@ if($employerResult && mysqli_num_rows($employerResult) > 0) {
             // Fetch job postings for this employer with detailed information
             $jobsQuery = "SELECT id, title, job_type, location, status, 
                           DATE_FORMAT(created_at, '%M %d, %Y') as posted_date, 
-                          DATE_FORMAT(expiry_date, '%M %d, %Y') as expiry, 
-                          (SELECT COUNT(*) FROM job_applications WHERE job_id = job_postings.id) as applications_count
+                          DATE_FORMAT(expiry_date, '%M %d, %Y') as expiry,
+                          salary_min, salary_max, salary_period
                           FROM job_postings 
                           WHERE user_id = $userId 
                           ORDER BY created_at DESC";
@@ -85,15 +85,15 @@ if($employerResult && mysqli_num_rows($employerResult) > 0) {
             ?>
             <div class="table-responsive">
                 <table class="table table-striped table-hover">
-                    <thead class="thead-dark">
+                <thead class="thead-dark">
                         <tr>
                             <th>Title</th>
                             <th>Type</th>
                             <th>Location</th>
                             <th>Status</th>
+                            <th>Salary Range</th>
                             <th>Posted Date</th>
                             <th>Expiry Date</th>
-                            <th>Applications</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -124,13 +124,27 @@ if($employerResult && mysqli_num_rows($employerResult) > 0) {
                                         <?php echo htmlspecialchars($job['status']); ?>
                                     </span>
                                 </td>
+                                <td>
+                                    <?php 
+                                    if(!empty($job['salary_min']) || !empty($job['salary_max'])) {
+                                        if(!empty($job['salary_min']) && !empty($job['salary_max'])) {
+                                            echo '$' . number_format($job['salary_min'], 2) . ' - $' . number_format($job['salary_max'], 2);
+                                        } elseif(!empty($job['salary_min'])) {
+                                            echo 'From $' . number_format($job['salary_min'], 2);
+                                        } elseif(!empty($job['salary_max'])) {
+                                            echo 'Up to $' . number_format($job['salary_max'], 2);
+                                        }
+                                        
+                                        if(!empty($job['salary_period'])) {
+                                            echo ' (' . htmlspecialchars($job['salary_period']) . ')';
+                                        }
+                                    } else {
+                                        echo 'Not specified';
+                                    }
+                                    ?>
+                                </td>
                                 <td><?php echo htmlspecialchars($job['posted_date']); ?></td>
                                 <td><?php echo !empty($job['expiry']) ? htmlspecialchars($job['expiry']) : 'No expiry'; ?></td>
-                                <td>
-                                    <span class="badge badge-info"><?php echo $job['applications_count']; ?></span>
-                                    <?php if($job['applications_count'] > 0): ?>
-                                    <a href="view_applications.php?job_id=<?php echo $job['id']; ?>" class="btn btn-sm btn-link p-0 ml-2">View</a>
-                                    <?php endif; ?>
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm" role="group">
