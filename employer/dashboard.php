@@ -220,14 +220,19 @@ $applications = 0;
                                 <td>
                                     <div class="btn-group btn-group-sm" role="group">
                                         <a href="view_job.php?id=<?php echo $job['id']; ?>" class="btn btn-info" title="View">
-                                            <i class="fa fa-eye"></i>
+                                            <i class="fa fa-eye"></i> View
                                         </a>
                                         <a href="edit_job.php?id=<?php echo $job['id']; ?>" class="btn btn-primary" title="Edit">
-                                            <i class="fa fa-edit"></i>
+                                            <i class="fa fa-edit"></i> Edit
                                         </a>
+                                        <?php if ($job['status'] == 'Draft'): ?>
+                                        <a href="publish_job.php?id=<?php echo $job['id']; ?>" class="btn btn-success" title="Publish">
+                                            <i class="fa fa-check-circle"></i> Publish
+                                        </a>
+                                        <?php endif; ?>
                                         <a href="close_job.php?id=<?php echo $job['id']; ?>" class="btn btn-danger" 
                                            title="Delete" onclick="return confirm('Are you sure you want to delete this job posting?');">
-                                            <i class="fa fa-trash"></i>
+                                            <i class="fa fa-trash"></i> Delete
                                         </a>
                                     </div>
                                 </td>
