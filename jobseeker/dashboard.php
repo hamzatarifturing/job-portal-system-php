@@ -40,7 +40,7 @@
                 <p class="lead">This is your job seeker dashboard. From here, you can manage your profile, search for jobs, and track your applications.</p>
                 <hr class="my-4">
                 <div class="btn-group" role="group">
-                    <a class="btn btn-primary btn-lg" href="search_jobs.php" role="button">Search Jobs</a>
+                    <a class="btn btn-primary btn-lg" href="jobs.php" role="button">Search Jobs</a>
                     <a class="btn btn-outline-primary btn-lg" href="my_applications.php" role="button">My Applications</a>
                     <a class="btn btn-outline-secondary btn-lg" href="edit_profile.php" role="button">Edit Profile</a>
                 </div>
@@ -321,7 +321,7 @@
                     <?php } ?>
                     
                     <div class="text-right mt-3">
-                        <a href="search_jobs.php" class="btn btn-primary">View All Job Postings</a>
+                        <a href="jobs.php" class="btn btn-primary">View All Job Postings</a>
                     </div>
                 </div>
             </div>
