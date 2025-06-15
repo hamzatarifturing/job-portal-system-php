@@ -89,77 +89,103 @@
                     <h5 class="m-0">Recent Job Postings</h5>
                 </div>
                 <div class="card-body">
-                    <!-- Job Filters -->
-                    <div class="mb-4">
+                     <!-- Job Filters -->
+                     <div class="mb-4">
                         <form id="jobFilterForm" method="GET" action="">
-                            <div class="row">
-                                <div class="col-md-3">
-                                    <div class="form-group">
-                                        <label for="locationFilter">Location</label>
-                                        <?php
-                                        // Get list of distinct locations for the dropdown
-                                        $locationsQuery = "SELECT DISTINCT location FROM job_postings 
-                                                         WHERE status = 'Published' AND location IS NOT NULL AND location != '' 
-                                                         ORDER BY location";
-                                        $locationsResult = mysqli_query($conn, $locationsQuery);
-                                        ?>
-                                        <select class="form-control" id="locationFilter" name="location">
-                                            <option value="">Any Location</option>
-                                            <?php 
-                                            if ($locationsResult && mysqli_num_rows($locationsResult) > 0) {
-                                                while ($location = mysqli_fetch_assoc($locationsResult)) {
-                                                    $selected = (isset($_GET['location']) && $_GET['location'] == $location['location']) ? 'selected' : '';
-                                                    echo '<option value="' . htmlspecialchars($location['location']) . '" ' . $selected . '>' . 
-                                                         htmlspecialchars($location['location']) . '</option>';
-                                                }
-                                            }
+                            <!-- Title Search Bar -->
+                            <div class="row mb-3">
+                                <div class="col-md-10">
+                                    <div class="form-group mb-0">
+                                        <div class="input-group">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text bg-primary text-white">
+                                                    <i class="fa fa-search"></i>
+                                                </span>
+                                            </div>
+                                            <input type="text" class="form-control" id="titleSearch" name="title_search" 
+                                                placeholder="Search job titles..." 
+                                                value="<?php echo isset($_GET['title_search']) ? htmlspecialchars($_GET['title_search']) : ''; ?>">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <button type="submit" class="btn btn-primary btn-block">Search</button>
+                                </div>
+                            </div>
+                            
+                            <!-- Advanced Filters Toggle Button -->
+                            <p class="mb-2">
+                                <button class="btn btn-link p-0" type="button" data-toggle="collapse" 
+                                    data-target="#advancedFilters" aria-expanded="false" aria-controls="advancedFilters">
+                                    <i class="fa fa-sliders"></i> Advanced Filters
+                                </button>
+                            </p>
+                            
+                            <!-- Collapsible Advanced Filters -->
+                            <div class="collapse <?php echo (isset($_GET['location']) || isset($_GET['job_type']) || isset($_GET['salary_range'])) ? 'show' : ''; ?>" id="advancedFilters">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label for="locationFilter">Location</label>
+                                            <?php
+                                            // Get list of distinct locations for the dropdown
+                                            $locationsQuery = "SELECT DISTINCT location FROM job_postings 
+                                                             WHERE status = 'Published' AND location IS NOT NULL AND location != '' 
+                                                             ORDER BY location";
+                                            $locationsResult = mysqli_query($conn, $locationsQuery);
                                             ?>
-                                        </select>
+                                            <select class="form-control" id="locationFilter" name="location">
+                                                <option value="">Any Location</option>
+                                                <?php 
+                                                if ($locationsResult && mysqli_num_rows($locationsResult) > 0) {
+                                                    while ($location = mysqli_fetch_assoc($locationsResult)) {
+                                                        $selected = (isset($_GET['location']) && $_GET['location'] == $location['location']) ? 'selected' : '';
+                                                        echo '<option value="' . htmlspecialchars($location['location']) . '" ' . $selected . '>' . 
+                                                             htmlspecialchars($location['location']) . '</option>';
+                                                    }
+                                                }
+                                                ?>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label for="jobTypeFilter">Job Type</label>
+                                            <select class="form-control" id="jobTypeFilter" name="job_type">
+                                                <option value="">Any Type</option>
+                                                <option value="Full-time" <?php echo (isset($_GET['job_type']) && $_GET['job_type'] == 'Full-time') ? 'selected' : ''; ?>>Full-time</option>
+                                                <option value="Part-time" <?php echo (isset($_GET['job_type']) && $_GET['job_type'] == 'Part-time') ? 'selected' : ''; ?>>Part-time</option>
+                                                <option value="Contract" <?php echo (isset($_GET['job_type']) && $_GET['job_type'] == 'Contract') ? 'selected' : ''; ?>>Contract</option>
+                                                <option value="Internship" <?php echo (isset($_GET['job_type']) && $_GET['job_type'] == 'Internship') ? 'selected' : ''; ?>>Internship</option>
+                                                <option value="Temporary" <?php echo (isset($_GET['job_type']) && $_GET['job_type'] == 'Temporary') ? 'selected' : ''; ?>>Temporary</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label for="salaryRangeFilter">Salary Range (Annual)</label>
+                                            <select class="form-control" id="salaryRangeFilter" name="salary_range">
+                                                <option value="">Any Salary</option>
+                                                <option value="0-30000" <?php echo (isset($_GET['salary_range']) && $_GET['salary_range'] == '0-30000') ? 'selected' : ''; ?>>Under $30,000</option>
+                                                <option value="30000-50000" <?php echo (isset($_GET['salary_range']) && $_GET['salary_range'] == '30000-50000') ? 'selected' : ''; ?>>$30,000 - $50,000</option>
+                                                <option value="50000-70000" <?php echo (isset($_GET['salary_range']) && $_GET['salary_range'] == '50000-70000') ? 'selected' : ''; ?>>$50,000 - $70,000</option>
+                                                <option value="70000-100000" <?php echo (isset($_GET['salary_range']) && $_GET['salary_range'] == '70000-100000') ? 'selected' : ''; ?>>$70,000 - $100,000</option>
+                                                <option value="100000-150000" <?php echo (isset($_GET['salary_range']) && $_GET['salary_range'] == '100000-150000') ? 'selected' : ''; ?>>$100,000 - $150,000</option>
+                                                <option value="150000-0" <?php echo (isset($_GET['salary_range']) && $_GET['salary_range'] == '150000-0') ? 'selected' : ''; ?>>$150,000+</option>
+                                            </select>
+                                        </div>
                                     </div>
                                 </div>
-                                
-                                <div class="col-md-3">
-                                    <div class="form-group">
-                                        <label for="jobTypeFilter">Job Type</label>
-                                        <select class="form-control" id="jobTypeFilter" name="job_type">
-                                            <option value="">Any Type</option>
-                                            <option value="Full-time" <?php echo (isset($_GET['job_type']) && $_GET['job_type'] == 'Full-time') ? 'selected' : ''; ?>>Full-time</option>
-                                            <option value="Part-time" <?php echo (isset($_GET['job_type']) && $_GET['job_type'] == 'Part-time') ? 'selected' : ''; ?>>Part-time</option>
-                                            <option value="Contract" <?php echo (isset($_GET['job_type']) && $_GET['job_type'] == 'Contract') ? 'selected' : ''; ?>>Contract</option>
-                                            <option value="Internship" <?php echo (isset($_GET['job_type']) && $_GET['job_type'] == 'Internship') ? 'selected' : ''; ?>>Internship</option>
-                                            <option value="Temporary" <?php echo (isset($_GET['job_type']) && $_GET['job_type'] == 'Temporary') ? 'selected' : ''; ?>>Temporary</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label for="salaryRangeFilter">Salary Range (Annual)</label>
-                                        <select class="form-control" id="salaryRangeFilter" name="salary_range">
-                                            <option value="">Any Salary</option>
-                                            <option value="0-30000" <?php echo (isset($_GET['salary_range']) && $_GET['salary_range'] == '0-30000') ? 'selected' : ''; ?>>Under $30,000</option>
-                                            <option value="30000-50000" <?php echo (isset($_GET['salary_range']) && $_GET['salary_range'] == '30000-50000') ? 'selected' : ''; ?>>$30,000 - $50,000</option>
-                                            <option value="50000-70000" <?php echo (isset($_GET['salary_range']) && $_GET['salary_range'] == '50000-70000') ? 'selected' : ''; ?>>$50,000 - $70,000</option>
-                                            <option value="70000-100000" <?php echo (isset($_GET['salary_range']) && $_GET['salary_range'] == '70000-100000') ? 'selected' : ''; ?>>$70,000 - $100,000</option>
-                                            <option value="100000-150000" <?php echo (isset($_GET['salary_range']) && $_GET['salary_range'] == '100000-150000') ? 'selected' : ''; ?>>$100,000 - $150,000</option>
-                                            <option value="150000-0" <?php echo (isset($_GET['salary_range']) && $_GET['salary_range'] == '150000-0') ? 'selected' : ''; ?>>$150,000+</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                
-                                <div class="col-md-2 d-flex align-items-end">
-                                    <div class="form-group mb-0 w-100 d-flex">
-                                        <button type="submit" class="btn btn-primary flex-grow-1 mr-2">
-                                            <i class="fa fa-search"></i> Filter
-                                        </button>
-                                        <?php if(isset($_GET['location']) || isset($_GET['job_type']) || isset($_GET['salary_range'])): ?>
+                            </div>
+                            
+                            <!-- Clear Filters Button -->
+                            <?php if(isset($_GET['title_search']) || isset($_GET['location']) || isset($_GET['job_type']) || isset($_GET['salary_range'])): ?>
                                         <a href="dashboard.php" class="btn btn-outline-secondary">
                                             <i class="fa fa-times"></i>
                                         </a>
                                         <?php endif; ?>
-                                    </div>
-                                </div>
-                            </div>
                         </form>
                     </div>
                     
@@ -174,6 +200,13 @@
                     
                     $params = array();
                     $types = "";
+                    
+                    // Add title search if specified
+                    if (isset($_GET['title_search']) && !empty($_GET['title_search'])) {
+                        $query .= " AND jp.title LIKE ?";
+                        $params[] = '%' . $_GET['title_search'] . '%';
+                        $types .= "s";
+                    }
                     
                     // Add location filter if specified
                     if (isset($_GET['location']) && !empty($_GET['location'])) {
