@@ -61,7 +61,42 @@ if($employerResult && mysqli_num_rows($employerResult) > 0) {
               </button>';
         echo '</div>';
     }
+
+    // Initialize search term variable
+    $searchTerm = '';
+    if(isset($_GET['search']) && !empty($_GET['search'])) {
+        $searchTerm = trim($_GET['search']);
+    }
     ?>
+
+    <!-- Search Form -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" action="job_listings.php" class="form-inline">
+                <div class="input-group flex-grow-1">
+                    <input type="text" name="search" class="form-control" 
+                           placeholder="Search jobs by title or description..." 
+                           value="<?php echo htmlspecialchars($searchTerm); ?>" aria-label="Search">
+                    <div class="input-group-append">
+                        <button class="btn btn-primary" type="submit">
+                            <i class="fa fa-search"></i> Search
+                        </button>
+                        <?php if(!empty($searchTerm)): ?>
+                        <a href="job_listings.php" class="btn btn-outline-secondary">
+                            <i class="fa fa-times"></i> Clear
+                        </a>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <?php if(!empty($searchTerm)): ?>
+    <div class="alert alert-info">
+        <i class="fa fa-filter"></i> Showing results for: <strong><?php echo htmlspecialchars($searchTerm); ?></strong>
+    </div>
+    <?php endif; ?>
 
     <div class="card">
         <div class="card-header bg-primary text-white">
@@ -75,8 +110,17 @@ if($employerResult && mysqli_num_rows($employerResult) > 0) {
                           DATE_FORMAT(expiry_date, '%M %d, %Y') as expiry,
                           salary_min, salary_max, salary_period
                           FROM job_postings 
-                          WHERE user_id = $userId 
-                          ORDER BY created_at DESC";
+                          WHERE user_id = $userId";
+                          
+            // Add search filter if search term is provided
+            if(!empty($searchTerm)) {
+                // Escape search term to prevent SQL injection
+                $searchTermEscaped = '%' . mysqli_real_escape_string($conn, $searchTerm) . '%';
+                $jobsQuery .= " AND (title LIKE '$searchTermEscaped' OR description LIKE '$searchTermEscaped')";
+            }
+            
+            // Add sorting
+            $jobsQuery .= " ORDER BY created_at DESC";
             
             $jobsResult = mysqli_query($conn, $jobsQuery);
             
@@ -85,7 +129,7 @@ if($employerResult && mysqli_num_rows($employerResult) > 0) {
             ?>
             <div class="table-responsive">
                 <table class="table table-striped table-hover">
-                <thead class="thead-dark">
+                    <thead class="thead-dark">
                         <tr>
                             <th>Title</th>
                             <th>Type</th>
@@ -145,7 +189,6 @@ if($employerResult && mysqli_num_rows($employerResult) > 0) {
                                 </td>
                                 <td><?php echo htmlspecialchars($job['posted_date']); ?></td>
                                 <td><?php echo !empty($job['expiry']) ? htmlspecialchars($job['expiry']) : 'No expiry'; ?></td>
-                                </td>
                                 <td>
                                     <div class="btn-group btn-group-sm" role="group">
                                         <a href="view_job.php?id=<?php echo $job['id']; ?>" class="btn btn-info" title="View">
