@@ -359,6 +359,94 @@
                 </div>
             </div>
             
+
+            <?php
+// Add this code right after your job listing table in dashboard.php
+
+// Query to get total count of open jobs
+$totalJobsQuery = "SELECT COUNT(*) as total_jobs 
+                  FROM job_postings 
+                  WHERE status = 'Published' 
+                  AND (expiry_date IS NULL OR expiry_date >= CURDATE())";
+$totalJobsResult = mysqli_query($conn, $totalJobsQuery);
+$totalJobs = 0;
+
+if ($totalJobsResult && mysqli_num_rows($totalJobsResult) > 0) {
+    $row = mysqli_fetch_assoc($totalJobsResult);
+    $totalJobs = $row['total_jobs'];
+}
+
+// Query to get count of jobs by job type
+$jobTypeQuery = "SELECT job_type, COUNT(*) as type_count 
+                FROM job_postings 
+                WHERE status = 'Published' 
+                AND (expiry_date IS NULL OR expiry_date >= CURDATE())
+                GROUP BY job_type
+                ORDER BY type_count DESC";
+$jobTypeResult = mysqli_query($conn, $jobTypeQuery);
+$jobTypeCounts = [];
+
+if ($jobTypeResult && mysqli_num_rows($jobTypeResult) > 0) {
+    while ($row = mysqli_fetch_assoc($jobTypeResult)) {
+        $jobTypeCounts[$row['job_type']] = $row['type_count'];
+    }
+}
+
+// Card colors for different job types
+$cardColors = [
+    'Full-time' => 'primary',
+    'Part-time' => 'success',
+    'Contract' => 'info',
+    'Freelance' => 'warning',
+    'Internship' => 'secondary',
+    'Temporary' => 'danger'
+];
+
+// Default color for any other job type not defined above
+$defaultColor = 'dark';
+?>
+
+<!-- Job Count Statistics Section -->
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="m-0">Job Market Overview</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <!-- Total jobs card -->
+            <div class="col-md-4 mb-3">
+                <div class="card h-100 border-primary">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="m-0">Total Open Jobs</h5>
+                    </div>
+                    <div class="card-body text-center">
+                        <p class="card-text display-4"><?php echo $totalJobs; ?></p>
+                        <a href="job_search.php" class="btn btn-outline-primary">Browse All Jobs</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Job type cards -->
+            <?php foreach ($jobTypeCounts as $type => $count): 
+                $colorClass = isset($cardColors[$type]) ? $cardColors[$type] : $defaultColor;
+            ?>
+            <div class="col-md-4 mb-3">
+                <div class="card h-100 border-<?php echo $colorClass; ?>">
+                    <div class="card-header bg-<?php echo $colorClass; ?> text-white">
+                        <h5 class="m-0"><?php echo htmlspecialchars($type); ?> Jobs</h5>
+                    </div>
+                    <div class="card-body text-center">
+                        <p class="card-text display-4"><?php echo $count; ?></p>
+                        <a href="job_search.php?type=<?php echo urlencode($type); ?>" class="btn btn-outline-<?php echo $colorClass; ?>">Browse <?php echo htmlspecialchars($type); ?> Jobs</a>
+                    </div>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</div>
+
+
             <!-- Profile completion reminder -->
             <div class="row">
                 <div class="col-md-6">
