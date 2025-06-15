@@ -420,8 +420,8 @@ $defaultColor = 'dark';
                         <h5 class="m-0">Total Open Jobs</h5>
                     </div>
                     <div class="card-body text-center">
-                        <p class="card-text display-4"><?php echo $totalJobs; ?></p>
-                        <a href="job_search.php" class="btn btn-outline-primary">Browse All Jobs</a>
+                    <p class="card-text display-4"><?php echo $totalJobs; ?></p>
+                    <a href="jobs.php" class="btn btn-outline-primary">Browse All Jobs</a>
                     </div>
                 </div>
             </div>
@@ -436,8 +436,8 @@ $defaultColor = 'dark';
                         <h5 class="m-0"><?php echo htmlspecialchars($type); ?> Jobs</h5>
                     </div>
                     <div class="card-body text-center">
-                        <p class="card-text display-4"><?php echo $count; ?></p>
-                        <a href="job_search.php?type=<?php echo urlencode($type); ?>" class="btn btn-outline-<?php echo $colorClass; ?>">Browse <?php echo htmlspecialchars($type); ?> Jobs</a>
+                    <p class="card-text display-4"><?php echo $count; ?></p>
+                    <a href="dashboard.php?job_type=<?php echo urlencode($type); ?>" class="btn btn-outline-<?php echo $colorClass; ?>">Browse <?php echo htmlspecialchars($type); ?> Jobs</a>
                     </div>
                 </div>
             </div>
