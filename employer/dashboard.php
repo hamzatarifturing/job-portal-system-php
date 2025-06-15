@@ -98,8 +98,8 @@ $applications = 0;
                     <h5 class="m-0">Active Job Postings</h5>
                 </div>
                 <div class="card-body text-center">
-                    <p class="card-text display-4"><?php echo $activeJobs; ?></p>
-                    <a href="job_listings.php" class="btn btn-outline-primary">Manage Jobs</a>
+                <p class="card-text display-4"><?php echo $activeJobs; ?></p>
+                <a href="job_listings.php" class="btn btn-outline-primary">View All Jobs</a>
                 </div>
             </div>
         </div>
