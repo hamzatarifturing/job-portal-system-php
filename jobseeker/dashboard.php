@@ -90,13 +90,14 @@
                 </div>
                 <div class="card-body">
                     <?php
-                    // Query to fetch the 5 most recent job postings
-                    $query = "SELECT jp.id, jp.title, jp.description, jp.location, jp.salary, jp.posted_date, 
-                                    e.company_name
+                    // Query to fetch the 5 most recent job postings based on the updated schema
+                    $query = "SELECT jp.id, jp.title, jp.description, jp.location, 
+                                    jp.company_name, jp.job_type, jp.salary_min, jp.salary_max, jp.salary_period,
+                                    jp.created_at
                              FROM job_postings jp
-                             INNER JOIN employers e ON jp.user_id = e.user_id
-                             WHERE jp.status = 'active'
-                             ORDER BY jp.posted_date DESC
+                             WHERE jp.status = 'Published' 
+                                   AND (jp.expiry_date IS NULL OR jp.expiry_date >= CURDATE())
+                             ORDER BY jp.created_at DESC
                              LIMIT 5";
                              
                     $result = mysqli_query($conn, $query);
@@ -110,19 +111,39 @@
                                     <th>Job Title</th>
                                     <th>Company</th>
                                     <th>Location</th>
+                                    <th>Job Type</th>
                                     <th>Salary</th>
                                     <th>Posted Date</th>
                                     <th>Action</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php while ($row = mysqli_fetch_assoc($result)) { ?>
+                                <?php while ($row = mysqli_fetch_assoc($result)) { 
+                                    // Format salary display
+                                    $salaryDisplay = '';
+                                    if (!empty($row['salary_min']) || !empty($row['salary_max'])) {
+                                        if (!empty($row['salary_min']) && !empty($row['salary_max'])) {
+                                            $salaryDisplay = '$' . number_format($row['salary_min'], 2) . ' - $' . number_format($row['salary_max'], 2);
+                                        } elseif (!empty($row['salary_min'])) {
+                                            $salaryDisplay = 'From $' . number_format($row['salary_min'], 2);
+                                        } elseif (!empty($row['salary_max'])) {
+                                            $salaryDisplay = 'Up to $' . number_format($row['salary_max'], 2);
+                                        }
+                                        
+                                        if (!empty($row['salary_period'])) {
+                                            $salaryDisplay .= ' (' . $row['salary_period'] . ')';
+                                        }
+                                    } else {
+                                        $salaryDisplay = 'Not specified';
+                                    }
+                                ?>
                                     <tr>
                                         <td><?php echo htmlspecialchars($row['title']); ?></td>
                                         <td><?php echo htmlspecialchars($row['company_name']); ?></td>
                                         <td><?php echo htmlspecialchars($row['location']); ?></td>
-                                        <td><?php echo htmlspecialchars($row['salary']); ?></td>
-                                        <td><?php echo date('M d, Y', strtotime($row['posted_date'])); ?></td>
+                                        <td><?php echo htmlspecialchars($row['job_type']); ?></td>
+                                        <td><?php echo $salaryDisplay; ?></td>
+                                        <td><?php echo date('M d, Y', strtotime($row['created_at'])); ?></td>
                                         <td>
                                             <a href="job_details.php?id=<?php echo $row['id']; ?>" class="btn btn-sm btn-info">View</a>
                                             <a href="apply_job.php?id=<?php echo $row['id']; ?>" class="btn btn-sm btn-success">Apply</a>
