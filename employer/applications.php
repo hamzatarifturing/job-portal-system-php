@@ -119,515 +119,335 @@ if ($jobsStmt) {
     mysqli_stmt_close($jobsStmt);
 }
 ?>
-<div>
-<h1>
-Manage Job Applications
 
-</h1>
-<?php if(isset($errorMsg)): ?>
-    <div class="alert alert-danger"><?php echo htmlspecialchars($errorMsg); ?>
-</div>
-<?php endif; ?>
-
-<?php if(isset($successMsg)): ?>
-<div>
-<?php echo htmlspecialchars($successMsg); ?>
-</div>
-<?php endif; ?>
-
-<!-- Filter options -->
-<div>
-    <div class="card-header bg-primary text-white">
-<h5>
-Filter Applications
-
-</h5>
-</div>
-<div>
-        <form method="GET" action="applications.php" class="row">
-            <div class="col-md-5 mb-2">
-<label>
-Filter by Job:
-
-</label>
-<select>
-<option>
-All Jobs
-
-</option>
-                    <?php foreach($jobs as $job): ?>
-<option>
-" <?php echo ($jobFilter == $job['id']) ? 'selected' : ''; ?>>
-<?php echo htmlspecialchars($job['title']); ?>
-
-</option>
-                    <?php endforeach; ?>
-</select>
-</div>
-<div>
-<label>
-Filter by Status:
-
-</label>
-<select>
-<option>
-All Statuses
-
-</option>
-<option>
-Pending
-
-</option>
-<option>
-Reviewed
-
-</option>
-<option>
-Shortlisted
-
-</option>
-<option>
-Rejected
-
-</option>
-<option>
-Hired
-
-</option>
-</select>
-</div>
-<div>
-<button>
-Filter
-
-</button>
-</div>
-        </form>
+<div class="container mt-5 mb-5">
+    <h1 class="mb-4">Manage Job Applications</h1>
+    
+    <?php if(isset($errorMsg)): ?>
+        <div class="alert alert-danger"><?php echo htmlspecialchars($errorMsg); ?></div>
+    <?php endif; ?>
+    
+    <?php if(isset($successMsg)): ?>
+        <div class="alert alert-success"><?php echo htmlspecialchars($successMsg); ?></div>
+    <?php endif; ?>
+    
+    <!-- Filter options -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="m-0">Filter Applications</h5>
+        </div>
+        <div class="card-body">
+            <form method="GET" action="applications.php" class="row">
+                <div class="col-md-5 mb-2">
+                    <label for="job_id">Filter by Job:</label>
+                    <select name="job_id" id="job_id" class="form-control">
+                        <option value="0">All Jobs</option>
+                        <?php foreach($jobs as $job): ?>
+                            <option value="<?php echo $job['id']; ?>" <?php echo ($jobFilter == $job['id']) ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($job['title']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="col-md-5 mb-2">
+                    <label for="status">Filter by Status:</label>
+                    <select name="status" id="status" class="form-control">
+                        <option value="">All Statuses</option>
+                        <option value="pending" <?php echo ($statusFilter === 'pending') ? 'selected' : ''; ?>>Pending</option>
+                        <option value="reviewed" <?php echo ($statusFilter === 'reviewed') ? 'selected' : ''; ?>>Reviewed</option>
+                        <option value="shortlisted" <?php echo ($statusFilter === 'shortlisted') ? 'selected' : ''; ?>>Shortlisted</option>
+                        <option value="rejected" <?php echo ($statusFilter === 'rejected') ? 'selected' : ''; ?>>Rejected</option>
+                        <option value="hired" <?php echo ($statusFilter === 'hired') ? 'selected' : ''; ?>>Hired</option>
+                    </select>
+                </div>
+                <div class="col-md-2 mb-2 align-self-end">
+                    <button type="submit" class="btn btn-primary btn-block">Filter</button>
+                </div>
+            </form>
+        </div>
     </div>
-</div>
-
-<!-- Applications list -->
-<?php if(empty($applications)): ?>
-<div>
-<h4>
-No applications found
-
-</h4>
-<p>
-There are no job applications matching your filter criteria. You can try changing your filters or check back later.
-
-</p>
-</div>
-<?php else: ?>
-<div>
-        <table class="table table-striped table-hover">
-<thead>
-<tr>
-<th>
-Applicant
-
-</th>
-<th>
-Job Title
-
-</th>
-<th>
-Applied On
-
-</th>
-<th>
-Status
-
-</th>
-<th>
-Actions
-
-</th>
-</tr>
-</thead>
-            <tbody>
-                <?php foreach($applications as $application): ?>
+    
+    <!-- Applications list -->
+    <?php if(empty($applications)): ?>
+        <div class="alert alert-info">
+            <h4>No applications found</h4>
+            <p>There are no job applications matching your filter criteria. You can try changing your filters or check back later.</p>
+        </div>
+    <?php else: ?>
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="thead-dark">
                     <tr>
-                        <td>
-                            <div class="d-flex align-items-center">
-                                <?php if(!empty($application['profile_image']) && $application['profile_image'] != 'default.jpg'): ?>
-                                    <img src="<?php echo '../uploads/profile_images/' . htmlspecialchars($application['profile_image']); ?>" 
-                                         class="rounded-circle mr-2" width="40" height="40" alt="Profile Picture">
-                                <?php else: ?>
-                                    <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center mr-2" 
-                                         style="width: 40px; height: 40px;">
-                                        <?php echo strtoupper(substr($application['first_name'], 0, 1)); ?>
-</div>
-                                <?php endif; ?>
-<div>
-<strong>
-<?php echo htmlspecialchars($application['first_name'] . ' ' . $application['last_name']); ?>
-</strong>
-<br>
-<small>
-<?php echo htmlspecialchars($application['email']); ?>
-</small>
-</div>
-                            </div>
-                        </td>
-<td>
-<?php echo htmlspecialchars($application['job_title']); ?>
-</td>
-<td>
-<?php echo date('M d, Y', strtotime($application['application_date'])); ?>
-</td>
-<td>
-<span>
-">
-<?php echo ucfirst(htmlspecialchars($application['status'])); ?>
-
-</span>
-</td>
-<td>
-<div>
-                                <!-- Resume download button - checks for both resume in users table and resume_path in application -->
-                                <?php if(!empty($application['resume_path']) || !empty($application['resume'])): ?>
-<a>
-"
-class="btn btn-sm btn-success" download>
-
-<i class="fa fa-download"></i>
-
-Resume
-
-</a>
+                        <th>Applicant</th>
+                        <th>Job Title</th>
+                        <th>Applied On</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach($applications as $application): ?>
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <?php if(!empty($application['profile_image']) && $application['profile_image'] != 'default.jpg'): ?>
+                                        <img src="<?php echo '../uploads/profile_images/' . htmlspecialchars($application['profile_image']); ?>" 
+                                             class="rounded-circle mr-2" width="40" height="40" alt="Profile Picture">
+                                    <?php else: ?>
+                                        <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center mr-2" 
+                                             style="width: 40px; height: 40px;">
+                                            <?php echo strtoupper(substr($application['first_name'], 0, 1)); ?>
+                                        </div>
+                                    <?php endif; ?>
+                                    <div>
+                                        <strong><?php echo htmlspecialchars($application['first_name'] . ' ' . $application['last_name']); ?></strong><br>
+                                        <small><?php echo htmlspecialchars($application['email']); ?></small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td><?php echo htmlspecialchars($application['job_title']); ?></td>
+                            <td><?php echo date('M d, Y', strtotime($application['application_date'])); ?></td>
+                            <td>
+                                <span class="badge badge-pill badge-<?php 
+                                    echo ($application['status'] === 'pending') ? 'warning' : 
+                                         (($application['status'] === 'reviewed') ? 'info' :
+                                         (($application['status'] === 'shortlisted') ? 'primary' :
+                                         (($application['status'] === 'hired') ? 'success' : 'danger'))); ?>">
+                                    <?php echo ucfirst(htmlspecialchars($application['status'])); ?>
+                                </span>
+                            </td>
+                            <td>
+                                <div class="btn-group">
+                                    <!-- Resume download button - checks for both resume in users table and resume_path in application -->
+                                    <?php if(!empty($application['resume_path']) || !empty($application['resume'])): ?>
+                                        <a href="<?php echo !empty($application['resume_path']) ? 
+                                            htmlspecialchars($application['resume_path']) : 
+                                            '../uploads/resumes/' . htmlspecialchars($application['resume']); ?>" 
+                                           class="btn btn-sm btn-success" download>
+                                            <i class="fa fa-download"></i> Resume
+                                        </a>
+                                    <?php endif; ?>
+                                    
+                                    <!-- Cover letter modal trigger -->
+                                    <?php if(!empty($application['cover_letter'])): ?>
+                                    <button type="button" class="btn btn-sm btn-info" data-toggle="modal" 
+                                            data-target="#coverLetterModal<?php echo $application['id']; ?>">
+                                        <i class="fa fa-file-text"></i> Cover Letter
+                                    </button>
+                                    <?php endif; ?>
+                                    
+                                    <button type="button" class="btn btn-sm btn-primary" data-toggle="modal" 
+                                            data-target="#statusModal<?php echo $application['id']; ?>">
+                                        <i class="fa fa-edit"></i> Update Status
+                                    </button>
+                                </div>
+                                
+                                <!-- Cover Letter Modal -->
+                                <?php if(!empty($application['cover_letter'])): ?>
+                                <div class="modal fade" id="coverLetterModal<?php echo $application['id']; ?>" tabindex="-1" role="dialog" 
+                                     aria-labelledby="coverLetterModalLabel<?php echo $application['id']; ?>" aria-hidden="true">
+                                    <div class="modal-dialog modal-lg" role="document">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="coverLetterModalLabel<?php echo $application['id']; ?>">
+                                                    Cover Letter - <?php echo htmlspecialchars($application['first_name'] . ' ' . $application['last_name']); ?>
+                                                </h5>
+                                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                    <span aria-hidden="true">&times;</span>
+                                                </button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <?php echo nl2br(htmlspecialchars($application['cover_letter'])); ?>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                                 <?php endif; ?>
                                 
-                                <!-- Cover letter modal trigger -->
-                                <?php if(!empty($application['cover_letter'])): ?>
-<button>
-">
-
-<i class="fa fa-file-text"></i>
-
-Cover Letter
-
-</button>
-                                <?php endif; ?>
-<button>
-">
-
-<i class="fa fa-edit"></i>
-
-Update Status
-
-</button>
-</div>
-                            <!-- Cover Letter Modal -->
-                            <?php if(!empty($application['cover_letter'])): ?>
-<div>
-" tabindex="-1" role="dialog"
-aria-labelledby="coverLetterModalLabel<?php echo $application['id']; ?>" aria-hidden="true">
-<div class="modal-dialog modal-lg" role="document">
-<div class="modal-content">
-<div class="modal-header">
-
-<h5>
-">
-Cover Letter - <?php echo htmlspecialchars($application['first_name'] . ' ' . $application['last_name']); ?>
-
-</h5>
-<button>
-<span>
-×
-
-</span>
-</button>
-</div>
-<div>
-                                            <?php echo nl2br(htmlspecialchars($application['cover_letter'])); ?>
-</div>
-<div>
-<button>
-Close
-
-</button>
-</div>
-                                    </div>
-                                </div>
-                            </div>
-                            <?php endif; ?>
-                            
-                            <!-- Status Update Modal -->
-<div>
-" tabindex="-1" role="dialog"
-aria-labelledby="statusModalLabel<?php echo $application['id']; ?>" aria-hidden="true">
-<div class="modal-dialog" role="document">
-<div class="modal-content">
-<div class="modal-header">
-
-<h5>
-">
-Update Application Status
-
-</h5>
-<button>
-<span>
-×
-
-</span>
-</button>
-</div>
-<div>
-                                            <form method="POST" action="applications.php">
-                                                <input type="hidden" name="application_id" value="<?php echo $application['id']; ?>">
-                                                <div class="form-group">
-<label>
-">Select new status:
-
-</label>
-<select>
-" class="form-control">
-
-<option>
-Pending
-
-</option>
-<option>
-Reviewed
-
-</option>
-<option>
-Shortlisted
-
-</option>
-<option>
-Rejected
-
-</option>
-<option>
-Hired
-
-</option>
-</select>
-</div>
-<div>
-<button>
-Cancel
-
-</button>
-<button>
-Save Changes
-
-</button>
-</div>
-                                            </form>
+                                <!-- Status Update Modal -->
+                                <div class="modal fade" id="statusModal<?php echo $application['id']; ?>" tabindex="-1" role="dialog" 
+                                     aria-labelledby="statusModalLabel<?php echo $application['id']; ?>" aria-hidden="true">
+                                    <div class="modal-dialog" role="document">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="statusModalLabel<?php echo $application['id']; ?>">
+                                                    Update Application Status
+                                                </h5>
+                                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                    <span aria-hidden="true">&times;</span>
+                                                </button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <form method="POST" action="applications.php">
+                                                    <input type="hidden" name="application_id" value="<?php echo $application['id']; ?>">
+                                                    <div class="form-group">
+                                                        <label for="status<?php echo $application['id']; ?>">Select new status:</label>
+                                                        <select name="status" id="status<?php echo $application['id']; ?>" class="form-control">
+                                                            <option value="pending" <?php echo ($application['status'] === 'pending') ? 'selected' : ''; ?>>Pending</option>
+                                                            <option value="reviewed" <?php echo ($application['status'] === 'reviewed') ? 'selected' : ''; ?>>Reviewed</option>
+                                                            <option value="shortlisted" <?php echo ($application['status'] === 'shortlisted') ? 'selected' : ''; ?>>Shortlisted</option>
+                                                            <option value="rejected" <?php echo ($application['status'] === 'rejected') ? 'selected' : ''; ?>>Rejected</option>
+                                                            <option value="hired" <?php echo ($application['status'] === 'hired') ? 'selected' : ''; ?>>Hired</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="text-right">
+                                                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                                                        <button type="submit" name="update_status" class="btn btn-primary">Save Changes</button>
+                                                    </div>
+                                                </form>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                            <!-- End Modal -->
-                            
-                            <!-- Applicant Contact Modal -->
-<div>
-" tabindex="-1" role="dialog"
-aria-labelledby="contactModalLabel<?php echo $application['id']; ?>" aria-hidden="true">
-<div class="modal-dialog" role="document">
-<div class="modal-content">
-<div class="modal-header">
-
-<h5>
-">
-Contact <?php echo htmlspecialchars($application['first_name'] . ' ' . $application['last_name']); ?>
-
-</h5>
-<button>
-<span>
-×
-
-</span>
-</button>
-</div>
-<div>
-                                            <div class="row mb-3">
-                                                <div class="col-md-12">
-<p>
-<strong>
-Email:
-
-</strong>
-<?php echo htmlspecialchars($application['email']); ?>
-</p>
+                                <!-- End Modal -->
+                                
+                                <!-- Applicant Contact Modal -->
+                                <div class="modal fade" id="contactModal<?php echo $application['id']; ?>" tabindex="-1" role="dialog" 
+                                     aria-labelledby="contactModalLabel<?php echo $application['id']; ?>" aria-hidden="true">
+                                    <div class="modal-dialog" role="document">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="contactModalLabel<?php echo $application['id']; ?>">
+                                                    Contact <?php echo htmlspecialchars($application['first_name'] . ' ' . $application['last_name']); ?>
+                                                </h5>
+                                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                    <span aria-hidden="true">&times;</span>
+                                                </button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <div class="row mb-3">
+                                                    <div class="col-md-12">
+                                                        <p><strong>Email:</strong> <?php echo htmlspecialchars($application['email']); ?></p>
+                                                        <?php if(!empty($application['phone'])): ?>
+                                                        <p><strong>Phone:</strong> <?php echo htmlspecialchars($application['phone']); ?></p>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col-md-6">
+                                                        <a href="mailto:<?php echo htmlspecialchars($application['email']); ?>" 
+                                                           class="btn btn-primary btn-block">
+                                                            <i class="fa fa-envelope"></i> Send Email
+                                                        </a>
+                                                    </div>
                                                     <?php if(!empty($application['phone'])): ?>
-<p>
-<strong>
-Phone:
-
-</strong>
-<?php echo htmlspecialchars($application['phone']); ?>
-</p>
+                                                    <div class="col-md-6">
+                                                        <a href="tel:<?php echo htmlspecialchars($application['phone']); ?>" 
+                                                           class="btn btn-info btn-block">
+                                                            <i class="fa fa-phone"></i> Call
+                                                        </a>
+                                                    </div>
                                                     <?php endif; ?>
-</div>
+                                                </div>
                                             </div>
-<div>
-                                                <div class="col-md-6">
-<a>
-"
-class="btn btn-primary btn-block">
-
-<i class="fa fa-envelope"></i>
-
-Send Email
-
-</a>
-</div>
-                                                <?php if(!empty($application['phone'])): ?>
-<div>
-<a>
-"
-class="btn btn-info btn-block">
-
-<i class="fa fa-phone"></i>
-
-Call
-
-</a>
-</div>
-                                                <?php endif; ?>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
                                             </div>
                                         </div>
-<div>
-<button>
-Close
-
-</button>
-</div>
                                     </div>
                                 </div>
-                            </div>
-                            <!-- End Contact Modal -->
-</td>
-                    </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
-    </div>
-<?php endif; ?>
-
-<!-- Application stats summary -->
-<div>
-    <div class="card-header bg-secondary text-white">
-<h5>
-Application Statistics
-
-</h5>
-</div>
-<div>
-        <?php
-        // Calculate statistics
-        $totalApplications = count($applications);
-        $pendingCount = 0;
-        $reviewedCount = 0;
-        $shortlistedCount = 0;
-        $rejectedCount = 0;
-        $hiredCount = 0;
-        
-        foreach ($applications as $app) {
-            switch($app['status']) {
-                case 'pending':
-                    $pendingCount++;
-                    break;
-                case 'reviewed':
-                    $reviewedCount++;
-                    break;
-                case 'shortlisted':
-                    $shortlistedCount++;
-                    break;
-                case 'rejected':
-                    $rejectedCount++;
-                    break;
-                case 'hired':
-                    $hiredCount++;
-                    break;
+                                <!-- End Contact Modal -->
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    <?php endif; ?>
+    
+    <!-- Application stats summary -->
+    <div class="card mt-4">
+        <div class="card-header bg-secondary text-white">
+            <h5 class="m-0">Application Statistics</h5>
+        </div>
+        <div class="card-body">
+            <?php
+            // Calculate statistics
+            $totalApplications = count($applications);
+            $pendingCount = 0;
+            $reviewedCount = 0;
+            $shortlistedCount = 0;
+            $rejectedCount = 0;
+            $hiredCount = 0;
+            
+            foreach ($applications as $app) {
+                switch($app['status']) {
+                    case 'pending':
+                        $pendingCount++;
+                        break;
+                    case 'reviewed':
+                        $reviewedCount++;
+                        break;
+                    case 'shortlisted':
+                        $shortlistedCount++;
+                        break;
+                    case 'rejected':
+                        $rejectedCount++;
+                        break;
+                    case 'hired':
+                        $hiredCount++;
+                        break;
+                }
             }
-        }
-        ?>
-        <div class="row">
-            <div class="col-md-2">
-                <div class="card bg-light mb-3">
-                    <div class="card-body text-center">
-<h5>
-Total
-
-</h5>
-<h3>
-<?php echo $totalApplications; ?>
-</h3>
-</div>
+            ?>
+            <div class="row">
+                <div class="col-md-2">
+                    <div class="card bg-light mb-3">
+                        <div class="card-body text-center">
+                            <h5>Total</h5>
+                            <h3><?php echo $totalApplications; ?></h3>
+                        </div>
+                    </div>
                 </div>
-            </div>
-<div>
-                <div class="card bg-warning text-white mb-3">
-                    <div class="card-body text-center">
-<h5>
-Pending
-
-</h5>
-<h3>
-<?php echo $pendingCount; ?>
-</h3>
-</div>
+                <div class="col-md-2">
+                    <div class="card bg-warning text-white mb-3">
+                        <div class="card-body text-center">
+                            <h5>Pending</h5>
+                            <h3><?php echo $pendingCount; ?></h3>
+                        </div>
+                    </div>
                 </div>
-            </div>
-<div>
-                <div class="card bg-info text-white mb-3">
-                    <div class="card-body text-center">
-<h5>
-Reviewed
-
-</h5>
-<h3>
-<?php echo $reviewedCount; ?>
-</h3>
-</div>
+                <div class="col-md-2">
+                    <div class="card bg-info text-white mb-3">
+                        <div class="card-body text-center">
+                            <h5>Reviewed</h5>
+                            <h3><?php echo $reviewedCount; ?></h3>
+                        </div>
+                    </div>
                 </div>
-            </div>
-<div>
-                <div class="card bg-primary text-white mb-3">
-                    <div class="card-body text-center">
-<h5>
-Shortlisted
-
-</h5>
-<h3>
-<?php echo $shortlistedCount; ?>
-</h3>
-</div>
+                <div class="col-md-2">
+                    <div class="card bg-primary text-white mb-3">
+                        <div class="card-body text-center">
+                            <h5>Shortlisted</h5>
+                            <h3><?php echo $shortlistedCount; ?></h3>
+                        </div>
+                    </div>
                 </div>
-            </div>
-<div>
-                <div class="card bg-danger text-white mb-3">
-                    <div class="card-body text-center">
-<h5>
-Rejected
-
-</h5>
-<h3>
-<?php echo $rejectedCount; ?>
-</h3>
-</div>
+                <div class="col-md-2">
+                    <div class="card bg-danger text-white mb-3">
+                        <div class="card-body text-center">
+                            <h5>Rejected</h5>
+                            <h3><?php echo $rejectedCount; ?></h3>
+                        </div>
+                    </div>
                 </div>
-            </div>
-<div>
-                <div class="card bg-success text-white mb-3">
-                    <div class="card-body text-center">
-<h5>
-Hired
-
-</h5>
-<h3>
-<?php echo $hiredCount; ?>
-</h3>
-</div>
+                <div class="col-md-2">
+                    <div class="card bg-success text-white mb-3">
+                        <div class="card-body text-center">
+                            <h5>Hired</h5>
+                            <h3><?php echo $hiredCount; ?></h3>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
-</div> <?php // Include footer 
-include_once($includePath . "footer.php"); ?>
+
+<?php
+// Include footer
+include_once($includePath . "footer.php");
+?>
