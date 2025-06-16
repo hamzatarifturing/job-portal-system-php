@@ -60,3 +60,15 @@ CREATE TABLE job_postings (
     INDEX (status),
     INDEX (expiry_date)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+CREATE TABLE job_applications (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    job_id INT NOT NULL,
+    user_id INT NOT NULL,
+    application_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    status ENUM('pending', 'reviewed', 'shortlisted', 'rejected', 'hired') NOT NULL DEFAULT 'pending',
+    cover_letter TEXT,
+    resume_path VARCHAR(255),
+    FOREIGN KEY (job_id) REFERENCES job_postings(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_application (job_id, user_id)
+);
