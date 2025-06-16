@@ -1,535 +1,335 @@
 <?php
-        // Start the session
-        session_start();
+// Start the session
+session_start();
 
-        /**
-         * dashboard.php - Job Seeker Dashboard
-         * 
-         * This is the main dashboard for job seekers after they log in.
-         * It displays personalized information and recent job postings.
-         */
+/**
+ * dashboard.php - Dashboard for job seekers
+ * 
+ * This script displays the job seeker's dashboard with:
+ * 1. User profile information
+ * 2. Quick stats (applications, saved jobs, profile views)
+ * 3. List of applied jobs in descending order
+ * 4. Recommended jobs based on user profile
+ */
 
-        // Check if user is logged in and is a job seeker
-        if(!isset($_SESSION['user_id']) || $_SESSION['user_type'] != 'jobseeker') {
-            header("Location: ../login.php?error=unauthorized");
-            exit();
-        }
-
-        // Set include path for includes folder
-        $includePath = "../includes/";
-
-        // Include database configuration
-        include_once($includePath . "db_config.php");
-
-        // Set the page title
-        $pageTitle = "Job Seeker Dashboard";
-
-        // Get user information from session
-        $userId = $_SESSION['user_id'];
-        $userFirstName = $_SESSION['first_name'];
-        $userLastName = $_SESSION['last_name'];
-        $username = $_SESSION['username'];
-
-        // Include header
-        include_once($includePath . "header.php");
-        ?>
-
-        <div class="container mt-4">
-            <div class="jumbotron">
-                <h1 class="display-4">Welcome, <?php echo htmlspecialchars($userFirstName); ?>!</h1>
-                <p class="lead">This is your job seeker dashboard. From here, you can manage your profile, search for jobs, and track your applications.</p>
-                <hr class="my-4">
-                <div class="btn-group" role="group">
-                    <a class="btn btn-primary btn-lg" href="jobs.php" role="button">Search Jobs</a>
-                    <a class="btn btn-outline-primary btn-lg" href="my_applications.php" role="button">My Applications</a>
-                    <a class="btn btn-outline-secondary btn-lg" href="edit_profile.php" role="button">Edit Profile</a>
-                </div>
-            </div>
-            
-            <!-- Dashboard stats -->
-            <div class="row">
-                <div class="col-md-4">
-                    <div class="card mb-4 border-primary">
-                        <div class="card-header bg-primary text-white">
-                            <h5 class="m-0">Active Applications</h5>
-                        </div>
-                        <div class="card-body text-center">
-                            <p class="card-text display-4">0</p>
-                            <a href="my_applications.php" class="btn btn-outline-primary">View Applications</a>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card mb-4 border-success">
-                        <div class="card-header bg-success text-white">
-                            <h5 class="m-0">Saved Jobs</h5>
-                        </div>
-                        <div class="card-body text-center">
-                            <p class="card-text display-4">0</p>
-                            <a href="saved_jobs.php" class="btn btn-outline-success">View Saved Jobs</a>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card mb-4 border-info">
-                        <div class="card-header bg-info text-white">
-                            <h5 class="m-0">Profile Views</h5>
-                        </div>
-                        <div class="card-body text-center">
-                            <p class="card-text display-4">0</p>
-                            <a href="profile_stats.php" class="btn btn-outline-info">View Profile Stats</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Recent Jobs Table with Filters -->
-            <div class="card mb-4">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="m-0">Recent Job Postings</h5>
-                </div>
-                <div class="card-body">
-                     <!-- Job Filters -->
-                     <div class="mb-4">
-                        <form id="jobFilterForm" method="GET" action="">
-                            <!-- Title Search Bar -->
-                            <div class="row mb-3">
-                                <div class="col-md-10">
-                                    <div class="form-group mb-0">
-                                        <div class="input-group">
-                                            <div class="input-group-prepend">
-                                                <span class="input-group-text bg-primary text-white">
-                                                    <i class="fa fa-search"></i>
-                                                </span>
-                                            </div>
-                                            <input type="text" class="form-control" id="titleSearch" name="title_search" 
-                                                placeholder="Search job titles..." 
-                                                value="<?php echo isset($_GET['title_search']) ? htmlspecialchars($_GET['title_search']) : ''; ?>">
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-2">
-                                    <button type="submit" class="btn btn-primary btn-block">Search</button>
-                                </div>
-                            </div>
-                            
-                            <!-- Advanced Filters Toggle Button -->
-                            <p class="mb-2">
-                                <button class="btn btn-link p-0" type="button" data-toggle="collapse" 
-                                    data-target="#advancedFilters" aria-expanded="false" aria-controls="advancedFilters">
-                                    <i class="fa fa-sliders"></i> Advanced Filters
-                                </button>
-                            </p>
-                            
-                            <!-- Collapsible Advanced Filters -->
-                            <div class="collapse <?php echo (isset($_GET['location']) || isset($_GET['job_type']) || isset($_GET['salary_range'])) ? 'show' : ''; ?>" id="advancedFilters">
-                                <div class="row">
-                                    <div class="col-md-4">
-                                        <div class="form-group">
-                                            <label for="locationFilter">Location</label>
-                                            <?php
-                                            // Get list of distinct locations for the dropdown
-                                            $locationsQuery = "SELECT DISTINCT location FROM job_postings 
-                                                             WHERE status = 'Published' AND location IS NOT NULL AND location != '' 
-                                                             ORDER BY location";
-                                            $locationsResult = mysqli_query($conn, $locationsQuery);
-                                            ?>
-                                            <select class="form-control" id="locationFilter" name="location">
-                                                <option value="">Any Location</option>
-                                                <?php 
-                                                if ($locationsResult && mysqli_num_rows($locationsResult) > 0) {
-                                                    while ($location = mysqli_fetch_assoc($locationsResult)) {
-                                                        $selected = (isset($_GET['location']) && $_GET['location'] == $location['location']) ? 'selected' : '';
-                                                        echo '<option value="' . htmlspecialchars($location['location']) . '" ' . $selected . '>' . 
-                                                             htmlspecialchars($location['location']) . '</option>';
-                                                    }
-                                                }
-                                                ?>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="col-md-4">
-                                        <div class="form-group">
-                                            <label for="jobTypeFilter">Job Type</label>
-                                            <select class="form-control" id="jobTypeFilter" name="job_type">
-                                                <option value="">Any Type</option>
-                                                <option value="Full-time" <?php echo (isset($_GET['job_type']) && $_GET['job_type'] == 'Full-time') ? 'selected' : ''; ?>>Full-time</option>
-                                                <option value="Part-time" <?php echo (isset($_GET['job_type']) && $_GET['job_type'] == 'Part-time') ? 'selected' : ''; ?>>Part-time</option>
-                                                <option value="Contract" <?php echo (isset($_GET['job_type']) && $_GET['job_type'] == 'Contract') ? 'selected' : ''; ?>>Contract</option>
-                                                <option value="Internship" <?php echo (isset($_GET['job_type']) && $_GET['job_type'] == 'Internship') ? 'selected' : ''; ?>>Internship</option>
-                                                <option value="Temporary" <?php echo (isset($_GET['job_type']) && $_GET['job_type'] == 'Temporary') ? 'selected' : ''; ?>>Temporary</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="col-md-4">
-                                        <div class="form-group">
-                                            <label for="salaryRangeFilter">Salary Range (Annual)</label>
-                                            <select class="form-control" id="salaryRangeFilter" name="salary_range">
-                                                <option value="">Any Salary</option>
-                                                <option value="0-30000" <?php echo (isset($_GET['salary_range']) && $_GET['salary_range'] == '0-30000') ? 'selected' : ''; ?>>Under $30,000</option>
-                                                <option value="30000-50000" <?php echo (isset($_GET['salary_range']) && $_GET['salary_range'] == '30000-50000') ? 'selected' : ''; ?>>$30,000 - $50,000</option>
-                                                <option value="50000-70000" <?php echo (isset($_GET['salary_range']) && $_GET['salary_range'] == '50000-70000') ? 'selected' : ''; ?>>$50,000 - $70,000</option>
-                                                <option value="70000-100000" <?php echo (isset($_GET['salary_range']) && $_GET['salary_range'] == '70000-100000') ? 'selected' : ''; ?>>$70,000 - $100,000</option>
-                                                <option value="100000-150000" <?php echo (isset($_GET['salary_range']) && $_GET['salary_range'] == '100000-150000') ? 'selected' : ''; ?>>$100,000 - $150,000</option>
-                                                <option value="150000-0" <?php echo (isset($_GET['salary_range']) && $_GET['salary_range'] == '150000-0') ? 'selected' : ''; ?>>$150,000+</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Clear Filters Button -->
-                            <?php if(isset($_GET['title_search']) || isset($_GET['location']) || isset($_GET['job_type']) || isset($_GET['salary_range'])): ?>
-                                        <a href="dashboard.php" class="btn btn-outline-secondary">
-                                            <i class="fa fa-times"></i>
-                                        </a>
-                                        <?php endif; ?>
-                        </form>
-                    </div>
-                    
-                    <?php
-                    // Build the query with possible filters
-                    $query = "SELECT jp.id, jp.title, jp.description, jp.location, 
-                                    jp.company_name, jp.job_type, jp.salary_min, jp.salary_max, jp.salary_period,
-                                    jp.created_at
-                             FROM job_postings jp
-                             WHERE jp.status = 'Published' 
-                                   AND (jp.expiry_date IS NULL OR jp.expiry_date >= CURDATE())";
-                    
-                    $params = array();
-                    $types = "";
-                    
-                    // Add title search if specified
-                    if (isset($_GET['title_search']) && !empty($_GET['title_search'])) {
-                        $query .= " AND jp.title LIKE ?";
-                        $params[] = '%' . $_GET['title_search'] . '%';
-                        $types .= "s";
-                    }
-                    
-                    // Add location filter if specified
-                    if (isset($_GET['location']) && !empty($_GET['location'])) {
-                        $query .= " AND jp.location = ?";
-                        $params[] = $_GET['location'];
-                        $types .= "s";
-                    }
-                    
-                    // Add job type filter if specified
-                    if (isset($_GET['job_type']) && !empty($_GET['job_type'])) {
-                        $query .= " AND jp.job_type = ?";
-                        $params[] = $_GET['job_type'];
-                        $types .= "s";
-                    }
-                    
-                    // Add salary range filter if specified
-                    if (isset($_GET['salary_range']) && !empty($_GET['salary_range'])) {
-                        $salaryRange = explode('-', $_GET['salary_range']);
-                        if (count($salaryRange) == 2) {
-                            $minSalary = floatval($salaryRange[0]);
-                            $maxSalary = floatval($salaryRange[1]);
-                            
-                            if ($maxSalary > 0) {
-                                // Both min and max are specified
-                                $query .= " AND (
-                                    (jp.salary_period = 'Yearly' AND jp.salary_min >= ? AND jp.salary_max <= ?) OR
-                                    (jp.salary_period = 'Monthly' AND jp.salary_min * 12 >= ? AND jp.salary_max * 12 <= ?) OR
-                                    (jp.salary_period = 'Weekly' AND jp.salary_min * 52 >= ? AND jp.salary_max * 52 <= ?) OR
-                                    (jp.salary_period = 'Hourly' AND jp.salary_min * 2080 >= ? AND jp.salary_max * 2080 <= ?)
-                                )";
-                                $params[] = $minSalary;
-                                $params[] = $maxSalary;
-                                $params[] = $minSalary;
-                                $params[] = $maxSalary;
-                                $params[] = $minSalary;
-                                $params[] = $maxSalary;
-                                $params[] = $minSalary;
-                                $params[] = $maxSalary;
-                                $types .= "dddddddd";
-                            } else {
-                                // Only min is specified (for salary ranges like "150000+")
-                                $query .= " AND (
-                                    (jp.salary_period = 'Yearly' AND jp.salary_min >= ?) OR
-                                    (jp.salary_period = 'Monthly' AND jp.salary_min * 12 >= ?) OR
-                                    (jp.salary_period = 'Weekly' AND jp.salary_min * 52 >= ?) OR
-                                    (jp.salary_period = 'Hourly' AND jp.salary_min * 2080 >= ?)
-                                )";
-                                $params[] = $minSalary;
-                                $params[] = $minSalary;
-                                $params[] = $minSalary;
-                                $params[] = $minSalary;
-                                $types .= "dddd";
-                            }
-                        }
-                    }
-                    
-                    // Add order and limit
-                    $query .= " ORDER BY jp.created_at DESC LIMIT 5";
-                    
-                    // Use prepared statement if we have parameters
-                    if (count($params) > 0) {
-                        $stmt = mysqli_prepare($conn, $query);
-                        
-                        // Bind parameters if we have them
-                        if ($stmt) {
-                            // Create dynamic parameter binding
-                            $bindParams = array();
-                            $bindParams[] = $types;
-                            
-                            for ($i = 0; $i < count($params); $i++) {
-                                $bindParams[] = &$params[$i];
-                            }
-                            
-                            // Call bind_param with our dynamically created parameter array
-                            call_user_func_array(array($stmt, 'bind_param'), $bindParams);
-                            
-                            // Execute the statement
-                            mysqli_stmt_execute($stmt);
-                            $result = mysqli_stmt_get_result($stmt);
-                        } else {
-                            // If prepare failed
-                            $result = false;
-                        }
-                    } else {
-                        // No parameters, just run the query
-                        $result = mysqli_query($conn, $query);
-                    }
-                    
-                    // Display the filtered jobs
-                    if ($result && mysqli_num_rows($result) > 0) {
-                    ?>
-                    <div class="table-responsive">
-                        <table class="table table-striped table-hover">
-                            <thead class="thead-light">
-                                <tr>
-                                    <th>Job Title</th>
-                                    <th>Company</th>
-                                    <th>Location</th>
-                                    <th>Job Type</th>
-                                    <th>Salary</th>
-                                    <th>Posted Date</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php while ($row = mysqli_fetch_assoc($result)) { 
-                                    // Format salary display
-                                    $salaryDisplay = '';
-                                    if (!empty($row['salary_min']) || !empty($row['salary_max'])) {
-                                        if (!empty($row['salary_min']) && !empty($row['salary_max'])) {
-                                            $salaryDisplay = '$' . number_format($row['salary_min'], 2) . ' - $' . number_format($row['salary_max'], 2);
-                                        } elseif (!empty($row['salary_min'])) {
-                                            $salaryDisplay = 'From $' . number_format($row['salary_min'], 2);
-                                        } elseif (!empty($row['salary_max'])) {
-                                            $salaryDisplay = 'Up to $' . number_format($row['salary_max'], 2);
-                                        }
-                                        
-                                        if (!empty($row['salary_period'])) {
-                                            $salaryDisplay .= ' (' . $row['salary_period'] . ')';
-                                        }
-                                    } else {
-                                        $salaryDisplay = 'Not specified';
-                                    }
-                                ?>
-                                    <tr>
-                                        <td><?php echo htmlspecialchars($row['title']); ?></td>
-                                        <td><?php echo htmlspecialchars($row['company_name']); ?></td>
-                                        <td><?php echo htmlspecialchars($row['location']); ?></td>
-                                        <td><?php echo htmlspecialchars($row['job_type']); ?></td>
-                                        <td><?php echo $salaryDisplay; ?></td>
-                                        <td><?php echo date('M d, Y', strtotime($row['created_at'])); ?></td>
-                                        <td>
-                                            <a href="job_details.php?id=<?php echo $row['id']; ?>" class="btn btn-sm btn-info">View</a>
-                                            <a href="apply_job.php?id=<?php echo $row['id']; ?>" class="btn btn-sm btn-success">Apply</a>
-                                        </td>
-                                    </tr>
-                                <?php } ?>
-                            </tbody>
-                        </table>
-                    </div>
-                    <?php } else { ?>
-                        <div class="alert alert-info">
-                            <p>No job postings found matching your criteria. Try adjusting your filters or check back later!</p>
-                        </div>
-                    <?php } ?>
-                    
-                    <div class="text-right mt-3">
-                        <a href="jobs.php" class="btn btn-primary">View All Job Postings</a>
-                    </div>
-                </div>
-            </div>
-            
-
-            <?php
-// Add this code right after your job listing table in dashboard.php
-
-// Query to get total count of open jobs
-$totalJobsQuery = "SELECT COUNT(*) as total_jobs 
-                  FROM job_postings 
-                  WHERE status = 'Published' 
-                  AND (expiry_date IS NULL OR expiry_date >= CURDATE())";
-$totalJobsResult = mysqli_query($conn, $totalJobsQuery);
-$totalJobs = 0;
-
-if ($totalJobsResult && mysqli_num_rows($totalJobsResult) > 0) {
-    $row = mysqli_fetch_assoc($totalJobsResult);
-    $totalJobs = $row['total_jobs'];
+// Check if user is logged in and is a jobseeker
+if(!isset($_SESSION['user_id']) || $_SESSION['user_type'] != 'jobseeker') {
+    header("Location: ../login.php?error=unauthorized");
+    exit();
 }
 
-// Query to get count of jobs by job type
-$jobTypeQuery = "SELECT job_type, COUNT(*) as type_count 
-                FROM job_postings 
-                WHERE status = 'Published' 
-                AND (expiry_date IS NULL OR expiry_date >= CURDATE())
-                GROUP BY job_type
-                ORDER BY type_count DESC";
-$jobTypeResult = mysqli_query($conn, $jobTypeQuery);
-$jobTypeCounts = [];
+// Set include path for includes folder
+$includePath = "../includes/";
 
-if ($jobTypeResult && mysqli_num_rows($jobTypeResult) > 0) {
-    while ($row = mysqli_fetch_assoc($jobTypeResult)) {
-        $jobTypeCounts[$row['job_type']] = $row['type_count'];
-    }
+// Include database configuration
+include_once($includePath . "db_config.php");
+
+// Get user ID from session
+$userId = $_SESSION['user_id'];
+
+// Get user data
+$userQuery = "SELECT * FROM users WHERE id = ? AND user_type = 'jobseeker'";
+$userStmt = mysqli_prepare($conn, $userQuery);
+mysqli_stmt_bind_param($userStmt, "i", $userId);
+mysqli_stmt_execute($userStmt);
+$userResult = mysqli_stmt_get_result($userStmt);
+
+// Check if user exists
+if(mysqli_num_rows($userResult) == 0) {
+    // User not found or not a jobseeker
+    session_destroy();
+    header("Location: ../login.php?error=invalid_user");
+    exit();
 }
 
-// Card colors for different job types
-$cardColors = [
-    'Full-time' => 'primary',
-    'Part-time' => 'success',
-    'Contract' => 'info',
-    'Freelance' => 'warning',
-    'Internship' => 'secondary',
-    'Temporary' => 'danger'
-];
+// Fetch user data
+$userData = mysqli_fetch_assoc($userResult);
+mysqli_stmt_close($userStmt);
 
-// Default color for any other job type not defined above
-$defaultColor = 'dark';
+// Set page title
+$pageTitle = "Dashboard - " . $userData['first_name'] . " " . $userData['last_name'];
+
+// Count total applications
+$appCountQuery = "SELECT COUNT(*) as count FROM job_applications WHERE user_id = ?";
+$appCountStmt = mysqli_prepare($conn, $appCountQuery);
+mysqli_stmt_bind_param($appCountStmt, "i", $userId);
+mysqli_stmt_execute($appCountStmt);
+$appCountResult = mysqli_stmt_get_result($appCountStmt);
+$appCount = mysqli_fetch_assoc($appCountResult)['count'];
+mysqli_stmt_close($appCountStmt);
+
+// Get applied jobs with details - ordered by application_date in descending order
+$appliedJobsQuery = "SELECT ja.id as application_id, ja.application_date, ja.status, 
+                        jp.id as job_id, jp.title, jp.location, jp.job_type, jp.min_salary, jp.max_salary,
+                        u.company_name, u.company_logo
+                    FROM job_applications ja
+                    JOIN job_postings jp ON ja.job_id = jp.id
+                    JOIN users u ON jp.user_id = u.id
+                    WHERE ja.user_id = ?
+                    ORDER BY ja.application_date DESC";
+
+$appliedJobsStmt = mysqli_prepare($conn, $appliedJobsQuery);
+mysqli_stmt_bind_param($appliedJobsStmt, "i", $userId);
+mysqli_stmt_execute($appliedJobsStmt);
+$appliedJobsResult = mysqli_stmt_get_result($appliedJobsStmt);
+
+// Include header
+include_once($includePath . "header.php");
 ?>
 
-<!-- Job Count Statistics Section -->
-<div class="card mb-4">
-    <div class="card-header bg-primary text-white">
-        <h5 class="m-0">Job Market Overview</h5>
+<div class="container mt-4">
+    <div class="jumbotron bg-primary text-white">
+        <div class="container">
+            <h1 class="display-4">Welcome, <?php echo htmlspecialchars($userData['first_name']); ?>!</h1>
+            <p class="lead">Manage your job applications and discover new opportunities.</p>
+            <div class="mt-4">
+                <a class="btn btn-light btn-lg" href="jobs.php" role="button">Browse Jobs</a>
+                <a class="btn btn-outline-light btn-lg" href="edit_profile.php" role="button">Edit Profile</a>
+            </div>
+        </div>
     </div>
-    <div class="card-body">
-        <div class="row">
-            <!-- Total jobs card -->
-            <div class="col-md-4 mb-3">
-                <div class="card h-100 border-primary">
-                    <div class="card-header bg-primary text-white">
-                        <h5 class="m-0">Total Open Jobs</h5>
-                    </div>
-                    <div class="card-body text-center">
-                    <p class="card-text display-4"><?php echo $totalJobs; ?></p>
-                    <a href="jobs.php" class="btn btn-outline-primary">Browse All Jobs</a>
-                    </div>
+    
+    <!-- Dashboard stats -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card border-primary">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="m-0">Applications</h5>
+                </div>
+                <div class="card-body text-center">
+                    <p class="card-text display-4"><?php echo $appCount; ?></p>
                 </div>
             </div>
-
-            <!-- Job type cards -->
-            <?php foreach ($jobTypeCounts as $type => $count): 
-                $colorClass = isset($cardColors[$type]) ? $cardColors[$type] : $defaultColor;
+        </div>
+        <div class="col-md-4">
+            <div class="card border-success">
+                <div class="card-header bg-success text-white">
+                    <h5 class="m-0">Profile Completion</h5>
+                </div>
+                <div class="card-body text-center">
+                    <?php
+                    // Simple profile completion percentage calculation
+                    $fields = array($userData['skills'], $userData['education'], $userData['experience'], $userData['resume']);
+                    $filledFields = 0;
+                    foreach($fields as $field) {
+                        if(!empty($field)) {
+                            $filledFields++;
+                        }
+                    }
+                    $completionPercentage = ($filledFields / count($fields)) * 100;
+                    ?>
+                    <div class="progress mb-3">
+                        <div class="progress-bar bg-success" role="progressbar" style="width: <?php echo $completionPercentage; ?>%;" 
+                            aria-valuenow="<?php echo $completionPercentage; ?>" aria-valuemin="0" aria-valuemax="100">
+                            <?php echo round($completionPercentage); ?>%
+                        </div>
+                    </div>
+                    <a href="edit_profile.php" class="btn btn-outline-success">Complete Profile</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-info">
+                <div class="card-header bg-info text-white">
+                    <h5 class="m-0">Job Alerts</h5>
+                </div>
+                <div class="card-body text-center">
+                    <p class="card-text display-4">0</p>
+                    <a href="job_alerts.php" class="btn btn-outline-info">Set Alerts</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Applied Jobs Section -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="m-0">Your Job Applications</h5>
+            <a href="jobs.php" class="btn btn-light btn-sm">Find More Jobs</a>
+        </div>
+        <div class="card-body">
+            <?php if(mysqli_num_rows($appliedJobsResult) > 0): ?>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="thead-light">
+                            <tr>
+                                <th>Job Title</th>
+                                <th>Company</th>
+                                <th>Location</th>
+                                <th>Applied On</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php while($job = mysqli_fetch_assoc($appliedJobsResult)): ?>
+                                <tr>
+                                    <td>
+                                        <a href="job_details.php?id=<?php echo $job['job_id']; ?>">
+                                            <?php echo htmlspecialchars($job['title']); ?>
+                                        </a>
+                                        <span class="badge badge-<?php 
+                                            echo $job['job_type'] == 'Full-time' ? 'primary' : 
+                                                ($job['job_type'] == 'Part-time' ? 'success' : 
+                                                    ($job['job_type'] == 'Contract' ? 'warning' : 'secondary')); 
+                                        ?> ml-2"><?php echo htmlspecialchars($job['job_type']); ?></span>
+                                    </td>
+                                    <td>
+                                        <?php if(!empty($job['company_logo'])): ?>
+                                            <img src="../uploads/logos/<?php echo htmlspecialchars($job['company_logo']); ?>" 
+                                                alt="<?php echo htmlspecialchars($job['company_name']); ?>" 
+                                                class="company-logo-sm mr-2">
+                                        <?php endif; ?>
+                                        <?php echo htmlspecialchars($job['company_name']); ?>
+                                    </td>
+                                    <td><?php echo htmlspecialchars($job['location']); ?></td>
+                                    <td><?php echo date('M d, Y', strtotime($job['application_date'])); ?></td>
+                                    <td>
+                                        <span class="badge badge-<?php 
+                                            echo $job['status'] == 'pending' ? 'warning' : 
+                                                ($job['status'] == 'shortlisted' ? 'info' : 
+                                                    ($job['status'] == 'hired' ? 'success' : 
+                                                        ($job['status'] == 'rejected' ? 'danger' : 'secondary'))); 
+                                        ?>">
+                                            <?php echo ucfirst(htmlspecialchars($job['status'])); ?>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <a href="job_details.php?id=<?php echo $job['job_id']; ?>" class="btn btn-sm btn-outline-primary">
+                                            View Job
+                                        </a>
+                                        <?php if($job['status'] == 'pending'): ?>
+                                            <a href="withdraw_application.php?id=<?php echo $job['application_id']; ?>" 
+                                               class="btn btn-sm btn-outline-danger"
+                                               onclick="return confirm('Are you sure you want to withdraw this application?');">
+                                                Withdraw
+                                            </a>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php endwhile; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php else: ?>
+                <div class="alert alert-info">
+                    <p>You haven't applied to any jobs yet.</p>
+                    <a href="jobs.php" class="btn btn-primary">Browse Jobs Now</a>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
+    
+    <!-- Job Recommendations -->
+    <div class="card mb-4">
+        <div class="card-header bg-success text-white">
+            <h5 class="m-0">Recommended Jobs</h5>
+        </div>
+        <div class="card-body">
+            <?php
+            // Get recommended jobs based on user skills or job preferences
+            $recommendedJobsQuery = "SELECT jp.id, jp.title, jp.location, jp.job_type, jp.date_posted,
+                                    u.company_name, u.company_logo
+                                FROM job_postings jp
+                                JOIN users u ON jp.user_id = u.id
+                                WHERE jp.status = 'Published'
+                                AND (jp.expiry_date IS NULL OR jp.expiry_date >= CURDATE())
+                                AND jp.id NOT IN (SELECT job_id FROM job_applications WHERE user_id = ?)
+                                ORDER BY jp.date_posted DESC
+                                LIMIT 5";
+            
+            $recommendedJobsStmt = mysqli_prepare($conn, $recommendedJobsQuery);
+            mysqli_stmt_bind_param($recommendedJobsStmt, "i", $userId);
+            mysqli_stmt_execute($recommendedJobsStmt);
+            $recommendedJobsResult = mysqli_stmt_get_result($recommendedJobsStmt);
+            
+            if(mysqli_num_rows($recommendedJobsResult) > 0):
             ?>
-            <div class="col-md-4 mb-3">
-                <div class="card h-100 border-<?php echo $colorClass; ?>">
-                    <div class="card-header bg-<?php echo $colorClass; ?> text-white">
-                        <h5 class="m-0"><?php echo htmlspecialchars($type); ?> Jobs</h5>
-                    </div>
-                    <div class="card-body text-center">
-                    <p class="card-text display-4"><?php echo $count; ?></p>
-                    <a href="dashboard.php?job_type=<?php echo urlencode($type); ?>" class="btn btn-outline-<?php echo $colorClass; ?>">Browse <?php echo htmlspecialchars($type); ?> Jobs</a>
-                    </div>
+                <div class="row">
+                    <?php while($recJob = mysqli_fetch_assoc($recommendedJobsResult)): ?>
+                        <div class="col-md-6 mb-3">
+                            <div class="card h-100 border-light">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <h5 class="card-title mb-1">
+                                                <a href="job_details.php?id=<?php echo $recJob['id']; ?>">
+                                                    <?php echo htmlspecialchars($recJob['title']); ?>
+                                                </a>
+                                            </h5>
+                                            <h6 class="card-subtitle text-muted mb-2">
+                                                <?php echo htmlspecialchars($recJob['company_name']); ?>
+                                            </h6>
+                                        </div>
+                                        <?php if(!empty($recJob['company_logo'])): ?>
+                                            <img src="../uploads/logos/<?php echo htmlspecialchars($recJob['company_logo']); ?>" 
+                                                alt="<?php echo htmlspecialchars($recJob['company_name']); ?>" 
+                                                class="company-logo-sm">
+                                        <?php endif; ?>
+                                    </div>
+                                    <p class="card-text">
+                                        <i class="fa fa-map-marker-alt text-secondary"></i> <?php echo htmlspecialchars($recJob['location']); ?><br>
+                                        <span class="badge badge-<?php 
+                                            echo $recJob['job_type'] == 'Full-time' ? 'primary' : 
+                                                ($recJob['job_type'] == 'Part-time' ? 'success' : 
+                                                    ($recJob['job_type'] == 'Contract' ? 'warning' : 'secondary')); 
+                                        ?>"><?php echo htmlspecialchars($recJob['job_type']); ?></span>
+                                        <small class="text-muted ml-2">Posted <?php echo time_elapsed_string($recJob['date_posted']); ?></small>
+                                    </p>
+                                </div>
+                                <div class="card-footer bg-white border-top-0">
+                                    <a href="apply_job.php?id=<?php echo $recJob['id']; ?>" class="btn btn-primary btn-sm">Apply Now</a>
+                                    <a href="job_details.php?id=<?php echo $recJob['id']; ?>" class="btn btn-outline-secondary btn-sm">View Details</a>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endwhile; ?>
                 </div>
-            </div>
-            <?php endforeach; ?>
+            <?php else: ?>
+                <div class="alert alert-info">
+                    <p>Complete your profile to get personalized job recommendations.</p>
+                    <a href="edit_profile.php" class="btn btn-success">Update Profile</a>
+                </div>
+            <?php endif; ?>
         </div>
     </div>
 </div>
 
+<?php
+// Helper function to format date
+function time_elapsed_string($datetime, $full = false) {
+    $now = new DateTime;
+    $ago = new DateTime($datetime);
+    $diff = $now->diff($ago);
 
-            <!-- Profile completion reminder -->
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="card bg-light mb-4">
-                        <div class="card-body">
-                            <h5 class="card-title">Complete Your Profile</h5>
-                            <p class="card-text">A complete profile increases your chances of getting hired. Add your skills, education, and work experience.</p>
-                            <div class="progress mb-3">
-                                <div class="progress-bar bg-warning" role="progressbar" style="width: 40%;" aria-valuenow="40" aria-valuemin="0" aria-valuemax="100">40%</div>
-                            </div>
-                            <a href="edit_profile.php" class="btn btn-warning">Complete Profile</a>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="col-md-6">
-                    <div class="card mb-4">
-                        <div class="card-header bg-secondary text-white">
-                            <h5 class="m-0">Job Recommendations</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="alert alert-info">
-                                <p>Welcome to your job seeker dashboard!</p>
-                                <p>Complete your profile to see personalized job recommendations based on your skills and experience.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Account Details -->
-            <div class="card mb-4">
-                <div class="card-header bg-secondary text-white">
-                    <h5 class="m-0">Account Details</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h5>User Information</h5>
-                            <table class="table table-bordered">
-                                <tr>
-                                    <th>Name:</th>
-                                    <td><?php echo htmlspecialchars($userFirstName . ' ' . $userLastName); ?></td>
-                                </tr>
-                                <tr>
-                                    <th>Username:</th>
-                                    <td><?php echo htmlspecialchars($username); ?></td>
-                                </tr>
-                                <tr>
-                                    <th>Account Type:</th>
-                                    <td><span class="badge badge-primary">Job Seeker</span></td>
-                                </tr>
-                                <tr>
-                                    <th>Last Login:</th>
-                                    <td><?php echo isset($_SESSION['last_login']) ? $_SESSION['last_login'] : 'First login'; ?></td>
-                                </tr>
-                            </table>
-                        </div>
-                        <div class="col-md-6">
-                            <h5>Resume Information</h5>
-                            <table class="table table-bordered">
-                                <tr>
-                                    <th>Resume:</th>
-                                    <td><?php echo isset($_SESSION['has_resume']) && $_SESSION['has_resume'] ? 
-                                        '<span class="text-success">Uploaded</span>' : 
-                                        '<span class="text-danger">Not uploaded</span>'; ?></td>
-                                </tr>
-                                <tr>
-                                    <th>Skills:</th>
-                                    <td><?php echo isset($_SESSION['skills']) ? htmlspecialchars($_SESSION['skills']) : 'Not specified'; ?></td>
-                                </tr>
-                            </table>
-                            <div class="text-right">
-                                <a href="upload_resume.php" class="btn btn-outline-primary">Upload Resume</a>
-                                <a href="edit_profile.php" class="btn btn-outline-secondary">Edit Profile</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+    $diff->w = floor($diff->d / 7);
+    $diff->d -= $diff->w * 7;
 
-        <?php
-        // Include footer
-        include_once($includePath . "footer.php");
-        ?>
+    $string = array(
+        'y' => 'year',
+        'm' => 'month',
+        'w' => 'week',
+        'd' => 'day',
+        'h' => 'hour',
+        'i' => 'minute',
+        's' => 'second',
+    );
+    
+    foreach ($string as $k => &$v) {
+        if ($diff->$k) {
+            $v = $diff->$k . ' ' . $v . ($diff->$k > 1 ? 's' : '');
+        } else {
+            unset($string[$k]);
+        }
+    }
+
+    if (!$full) $string = array_slice($string, 0, 1);
+    return $string ? implode(', ', $string) . ' ago' : 'just now';
+}
+
+// Close the database connection
+mysqli_close($conn);
+
+// Include footer
+include_once($includePath . "footer.php");
+?>
