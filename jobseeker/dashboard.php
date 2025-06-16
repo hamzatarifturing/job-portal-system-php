@@ -27,6 +27,32 @@ include_once($includePath . "db_config.php");
 // Get user ID from session
 $userId = $_SESSION['user_id'];
 
+// Store the job_postings schema for reference
+/* 
+CREATE TABLE job_postings (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    company_name VARCHAR(100) NOT NULL,
+    title VARCHAR(100) NOT NULL,
+    description TEXT NOT NULL,
+    requirements TEXT,
+    location VARCHAR(100),
+    job_type ENUM('Full-time', 'Part-time', 'Contract', 'Internship', 'Temporary') NOT NULL,
+    salary_min DECIMAL(10, 2),
+    salary_max DECIMAL(10, 2),
+    salary_period ENUM('Hourly', 'Daily', 'Weekly', 'Monthly', 'Yearly'),
+    status ENUM('Draft', 'Published', 'Closed', 'Filled') NOT NULL DEFAULT 'Published',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    expiry_date DATE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX (user_id),
+    INDEX (status),
+    INDEX (expiry_date)
+)
+*/
+$userId = $_SESSION['user_id'];
+
 // Get user data
 $userQuery = "SELECT * FROM users WHERE id = ? AND user_type = 'jobseeker'";
 $userStmt = mysqli_prepare($conn, $userQuery);
@@ -60,8 +86,8 @@ mysqli_stmt_close($appCountStmt);
 
 // Get applied jobs with details - ordered by application_date in descending order
 $appliedJobsQuery = "SELECT ja.id as application_id, ja.application_date, ja.status, 
-                        jp.id as job_id, jp.title, jp.location, jp.job_type, jp.min_salary, jp.max_salary,
-                        u.company_name, u.company_logo
+                        jp.id as job_id, jp.title, jp.location, jp.job_type, jp.salary_min, jp.salary_max, jp.salary_period,
+                        jp.company_name, u.company_logo
                     FROM job_applications ja
                     JOIN job_postings jp ON ja.job_id = jp.id
                     JOIN users u ON jp.user_id = u.id
@@ -182,6 +208,7 @@ include_once($includePath . "header.php");
                                         <?php endif; ?>
                                         <?php echo htmlspecialchars($job['company_name']); ?>
                                     </td>
+
                                     <td><?php echo htmlspecialchars($job['location']); ?></td>
                                     <td><?php echo date('M d, Y', strtotime($job['application_date'])); ?></td>
                                     <td>
@@ -228,14 +255,14 @@ include_once($includePath . "header.php");
         <div class="card-body">
             <?php
             // Get recommended jobs based on user skills or job preferences
-            $recommendedJobsQuery = "SELECT jp.id, jp.title, jp.location, jp.job_type, jp.date_posted,
-                                    u.company_name, u.company_logo
+            $recommendedJobsQuery = "SELECT jp.id, jp.title, jp.location, jp.job_type, jp.created_at as date_posted,
+                                    jp.company_name, u.company_logo
                                 FROM job_postings jp
                                 JOIN users u ON jp.user_id = u.id
                                 WHERE jp.status = 'Published'
                                 AND (jp.expiry_date IS NULL OR jp.expiry_date >= CURDATE())
                                 AND jp.id NOT IN (SELECT job_id FROM job_applications WHERE user_id = ?)
-                                ORDER BY jp.date_posted DESC
+                                ORDER BY jp.created_at DESC
                                 LIMIT 5";
             
             $recommendedJobsStmt = mysqli_prepare($conn, $recommendedJobsQuery);
