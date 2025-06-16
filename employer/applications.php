@@ -281,11 +281,27 @@ if ($jobsStmt) {
                                                 </button>
                                             </div>
                                             <div class="modal-body">
-                                                <form method="POST" action="applications.php">
+                                                <form method="POST" action="applications.php" id="statusForm<?php echo $application['id']; ?>">
                                                     <input type="hidden" name="application_id" value="<?php echo $application['id']; ?>">
+                                                    <!-- Rejection confirmation alert, initially hidden -->
+                <div id="rejectionAlert<?php echo $application['id']; ?>" class="alert alert-danger mb-3" style="display: none;"><strong>
+Warning!
+
+</strong>
+You are about to reject this application.
+
+<p>
+This action will notify the candidate that they were not selected for this position.
+
+</p>
+<p>
+Are you sure you want to proceed?
+
+</p>
+</div>
                                                     <div class="form-group">
                                                         <label for="status<?php echo $application['id']; ?>">Select new status:</label>
-                                                        <select name="status" id="status<?php echo $application['id']; ?>" class="form-control">
+                                                        <select onchange="checkRejection(this, <?php echo $application['id']; ?>)" name="status" id="status<?php echo $application['id']; ?>" class="form-control">
                                                             <option value="pending" <?php echo ($application['status'] === 'pending') ? 'selected' : ''; ?>>Pending</option>
                                                             <option value="reviewed" <?php echo ($application['status'] === 'reviewed') ? 'selected' : ''; ?>>Reviewed</option>
                                                             <option value="shortlisted" <?php echo ($application['status'] === 'shortlisted') ? 'selected' : ''; ?>>Shortlisted</option>
@@ -357,7 +373,48 @@ if ($jobsStmt) {
             </table>
         </div>
     <?php endif; ?>
+    <script>
+function checkRejection(selectElement, applicationId) {
+const rejectionAlert = document.getElementById('rejectionAlert' + applicationId);
+
+if (selectElement.value === 'rejected') {
+    // Show the confirmation alert if "Rejected" is selected
+    rejectionAlert.style.display = 'block';
+} else {
+    // Hide the confirmation alert for other statuses
+    rejectionAlert.style.display = 'none';
+}
+}
+
+// Initialize the function for any pre-selected "Rejected" statuses when modals open
+document.addEventListener('DOMContentLoaded', function() {
+const statusSelects = document.querySelectorAll('select[id^="status"]');
+statusSelects.forEach(select => {
+const applicationId = select.id.replace('status', '');
+if (applicationId && select.value === 'rejected') {
+const rejectionAlert = document.getElementById('rejectionAlert' + applicationId);
+if (rejectionAlert) {
+rejectionAlert.style.display = 'block';
+}
+}
+});
+
+// Add modal event listener to check rejection on modal show
+$('[id^="statusModal"]').on('shown.bs.modal', function () {
+    const modalId = this.id;
+    const applicationId = modalId.replace('statusModal', '');
+    const selectElement = document.getElementById('status' + applicationId);
     
+    if (selectElement && selectElement.value === 'rejected') {
+        const rejectionAlert = document.getElementById('rejectionAlert' + applicationId);
+        if (rejectionAlert) {
+            rejectionAlert.style.display = 'block';
+        }
+    }
+});
+});
+
+</script>
     <!-- Application stats summary -->
     <div class="card mt-4">
         <div class="card-header bg-secondary text-white">
