@@ -26,8 +26,45 @@ $user_stmt = mysqli_prepare($conn, $user_query);
 if ($user_stmt) {
     mysqli_stmt_bind_param($user_stmt, "i", $jobseeker_id);
     mysqli_stmt_execute($user_stmt);
-    $user_result = mysqli_stmt_get_result($user_stmt);
-    $user_data = mysqli_fetch_assoc($user_result);
+    
+    // Bind results - PHP5 compatible method
+    $user_result = array();
+    
+    // Create a result object
+    $result = mysqli_stmt_get_result($user_stmt);
+    
+    // If mysqli_stmt_get_result doesn't work due to mysqlnd driver missing, use this alternative
+    if (!$result) {
+        mysqli_stmt_bind_result($user_stmt, 
+            $user_result['id'], 
+            $user_result['first_name'], 
+            $user_result['last_name'], 
+            $user_result['email'], 
+            $user_result['phone'], 
+            $user_result['address'], 
+            $user_result['city'], 
+            $user_result['state'], 
+            $user_result['country'], 
+            $user_result['zip_code'], 
+            $user_result['skills'], 
+            $user_result['education'], 
+            $user_result['experience'], 
+            $user_result['bio'], 
+            $user_result['resume'], 
+            $user_result['profile_picture'],
+            $user_result['password'],
+            $user_result['status'],
+            $user_result['created_at'],
+            $user_result['updated_at'],
+            $user_result['last_login']
+        );
+        mysqli_stmt_fetch($user_stmt);
+        $user_data = $user_result;
+    } else {
+        // If mysqli_stmt_get_result works, use it (requires mysqlnd driver)
+        $user_data = mysqli_fetch_assoc($result);
+    }
+    
     mysqli_stmt_close($user_stmt);
 } else {
     $error_message = "Database error: " . mysqli_error($conn);
@@ -68,138 +105,171 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
             if (mysqli_stmt_num_rows($email_check_stmt) > 0) {
                 $error_message = "This email is already in use by another account.";
             } else {
-                // Update user data
-                $update_query = "UPDATE users SET 
-                                first_name = ?, 
-                                last_name = ?, 
-                                email = ?, 
-                                phone = ?, 
-                                address = ?, 
-                                city = ?, 
-                                state = ?, 
-                                country = ?, 
-                                zip_code = ?, 
-                                skills = ?, 
-                                education = ?, 
-                                experience = ?, 
-                                bio = ?, 
-                                updated_at = NOW() 
-                                WHERE id = ?";
-                
-                $update_stmt = mysqli_prepare($conn, $update_query);
-                
-                if ($update_stmt) {
-                    mysqli_stmt_bind_param(
-                        $update_stmt, 
-                        "sssssssssssssi", 
-                        $first_name, 
-                        $last_name, 
-                        $email, 
-                        $phone, 
-                        $address, 
-                        $city, 
-                        $state, 
-                        $country, 
-                        $zip_code, 
-                        $skills, 
-                        $education, 
-                        $experience, 
-                        $bio, 
-                        $jobseeker_id
-                    );
+                // Handle resume upload
+                $resume_path = isset($user_data['resume']) ? $user_data['resume'] : '';
+                if (isset($_FILES['resume']) && $_FILES['resume']['size'] > 0) {
+                    $resume_dir = "../uploads/resumes/";
                     
-                    if (mysqli_stmt_execute($update_stmt)) {
-                        // Handle resume upload if provided
-                        if (isset($_FILES['resume']) && $_FILES['resume']['error'] == 0) {
-                            $resume_name = $_FILES['resume']['name'];
-                            $resume_tmp = $_FILES['resume']['tmp_name'];
-                            $resume_size = $_FILES['resume']['size'];
-                            $resume_ext = strtolower(pathinfo($resume_name, PATHINFO_EXTENSION));
-                            
-                            // Check file extension
-                            $allowed_extensions = array('pdf', 'doc', 'docx');
-                            if (in_array($resume_ext, $allowed_extensions)) {
-                                // Check file size (max 5MB)
-                                if ($resume_size <= 5000000) {
-                                    // Generate unique filename
-                                    $new_resume_name = "resume_" . $jobseeker_id . "_" . time() . "." . $resume_ext;
-                                    $upload_path = "../uploads/resumes/" . $new_resume_name;
-                                    
-                                    // Move uploaded file
-                                    if (move_uploaded_file($resume_tmp, $upload_path)) {
-                                        // Update resume path in database
-                                        $resume_update_query = "UPDATE users SET resume_path = ? WHERE id = ?";
-                                        $resume_update_stmt = mysqli_prepare($conn, $resume_update_query);
-                                        
-                                        if ($resume_update_stmt) {
-                                            mysqli_stmt_bind_param($resume_update_stmt, "si", $new_resume_name, $jobseeker_id);
-                                            mysqli_stmt_execute($resume_update_stmt);
-                                            mysqli_stmt_close($resume_update_stmt);
-                                        }
-                                    } else {
-                                        $error_message = "Failed to upload resume. Please try again.";
-                                    }
-                                } else {
-                                    $error_message = "Resume file size must be less than 5MB.";
-                                }
-                            } else {
-                                $error_message = "Only PDF, DOC, and DOCX files are allowed for resume.";
-                            }
-                        }
-                        
-                        // Handle profile picture upload if provided
-                        if (isset($_FILES['profile_picture']) && $_FILES['profile_picture']['error'] == 0) {
-                            $pic_name = $_FILES['profile_picture']['name'];
-                            $pic_tmp = $_FILES['profile_picture']['tmp_name'];
-                            $pic_size = $_FILES['profile_picture']['size'];
-                            $pic_ext = strtolower(pathinfo($pic_name, PATHINFO_EXTENSION));
-                            
-                            // Check file extension
-                            $allowed_pic_extensions = array('jpg', 'jpeg', 'png');
-                            if (in_array($pic_ext, $allowed_pic_extensions)) {
-                                // Check file size (max 2MB)
-                                if ($pic_size <= 2000000) {
-                                    // Generate unique filename
-                                    $new_pic_name = "profile_" . $jobseeker_id . "_" . time() . "." . $pic_ext;
-                                    $pic_upload_path = "../uploads/profile_pictures/" . $new_pic_name;
-                                    
-                                    // Move uploaded file
-                                    if (move_uploaded_file($pic_tmp, $pic_upload_path)) {
-                                        // Update profile picture path in database
-                                        $pic_update_query = "UPDATE users SET profile_picture = ? WHERE id = ?";
-                                        $pic_update_stmt = mysqli_prepare($conn, $pic_update_query);
-                                        
-                                        if ($pic_update_stmt) {
-                                            mysqli_stmt_bind_param($pic_update_stmt, "si", $new_pic_name, $jobseeker_id);
-                                            mysqli_stmt_execute($pic_update_stmt);
-                                            mysqli_stmt_close($pic_update_stmt);
-                                        }
-                                    } else {
-                                        $error_message = "Failed to upload profile picture. Please try again.";
-                                    }
-                                } else {
-                                    $error_message = "Profile picture size must be less than 2MB.";
-                                }
-                            } else {
-                                $error_message = "Only JPG, JPEG, and PNG files are allowed for profile picture.";
-                            }
-                        }
-                        
-                        if (empty($error_message)) {
-                            $success_message = "Your profile has been updated successfully.";
-                            
-                            // Refresh user data after update
-                            mysqli_stmt_execute($user_stmt);
-                            $user_result = mysqli_stmt_get_result($user_stmt);
-                            $user_data = mysqli_fetch_assoc($user_result);
-                        }
-                    } else {
-                        $error_message = "Failed to update profile: " . mysqli_error($conn);
+                    // Create directory if it doesn't exist
+                    if (!file_exists($resume_dir)) {
+                        mkdir($resume_dir, 0755, true);
                     }
                     
-                    mysqli_stmt_close($update_stmt);
-                } else {
-                    $error_message = "Database error: " . mysqli_error($conn);
+                    $resume_name = $jobseeker_id . "_" . basename($_FILES["resume"]["name"]);
+                    $resume_path = $resume_dir . $resume_name;
+                    
+                    // Define allowed file types
+                    $allowed_types = array('pdf', 'doc', 'docx');
+                    $file_ext = strtolower(pathinfo($resume_path, PATHINFO_EXTENSION));
+                    
+                    if (!in_array($file_ext, $allowed_types)) {
+                        $error_message = "Only PDF, DOC, and DOCX files are allowed for resume.";
+                    } elseif ($_FILES["resume"]["size"] > 5000000) { // 5MB max
+                        $error_message = "Resume file is too large. Max size is 5MB.";
+                    } else {
+                        if (move_uploaded_file($_FILES["resume"]["tmp_name"], $resume_path)) {
+                            // Successfully uploaded
+                        } else {
+                            $error_message = "Failed to upload resume.";
+                            $resume_path = isset($user_data['resume']) ? $user_data['resume'] : ''; // keep existing resume
+                        }
+                    }
+                }
+                
+                // Handle profile picture upload
+                $profile_pic_path = isset($user_data['profile_picture']) ? $user_data['profile_picture'] : '';
+                if (isset($_FILES['profile_picture']) && $_FILES['profile_picture']['size'] > 0) {
+                    $pic_dir = "../uploads/profile_pics/";
+                    
+                    // Create directory if it doesn't exist
+                    if (!file_exists($pic_dir)) {
+                        mkdir($pic_dir, 0755, true);
+                    }
+                    
+                    $pic_name = $jobseeker_id . "_" . basename($_FILES["profile_picture"]["name"]);
+                    $profile_pic_path = $pic_dir . $pic_name;
+                    
+                    // Define allowed image types
+                    $allowed_types = array('jpg', 'jpeg', 'png');
+                    $file_ext = strtolower(pathinfo($profile_pic_path, PATHINFO_EXTENSION));
+                    
+                    if (!in_array($file_ext, $allowed_types)) {
+                        $error_message = "Only JPG, JPEG, and PNG files are allowed for profile picture.";
+                    } elseif ($_FILES["profile_picture"]["size"] > 2000000) { // 2MB max
+                        $error_message = "Profile picture is too large. Max size is 2MB.";
+                    } else {
+                        if (move_uploaded_file($_FILES["profile_picture"]["tmp_name"], $profile_pic_path)) {
+                            // Successfully uploaded
+                        } else {
+                            $error_message = "Failed to upload profile picture.";
+                            $profile_pic_path = isset($user_data['profile_picture']) ? $user_data['profile_picture'] : ''; // keep existing picture
+                        }
+                    }
+                }
+                
+                // If no errors, update the user data
+                if (empty($error_message)) {
+                    $update_query = "UPDATE users SET 
+                                    first_name = ?, 
+                                    last_name = ?, 
+                                    email = ?, 
+                                    phone = ?, 
+                                    address = ?, 
+                                    city = ?, 
+                                    state = ?, 
+                                    country = ?, 
+                                    zip_code = ?, 
+                                    skills = ?, 
+                                    education = ?, 
+                                    experience = ?, 
+                                    bio = ?, 
+                                    resume = ?, 
+                                    profile_picture = ?, 
+                                    updated_at = NOW() 
+                                    WHERE id = ?";
+                    
+                    $update_stmt = mysqli_prepare($conn, $update_query);
+                    
+                    if ($update_stmt) {
+                        mysqli_stmt_bind_param(
+                            $update_stmt, 
+                            "ssssssssssssssi", 
+                            $first_name, 
+                            $last_name, 
+                            $email, 
+                            $phone, 
+                            $address, 
+                            $city, 
+                            $state, 
+                            $country, 
+                            $zip_code, 
+                            $skills, 
+                            $education, 
+                            $experience, 
+                            $bio, 
+                            $resume_path, 
+                            $profile_pic_path, 
+                            $jobseeker_id
+                        );
+                        
+                        if (mysqli_stmt_execute($update_stmt)) {
+                            $success_message = "Your profile has been updated successfully!";
+                            
+                            // Refresh user data to display updated information
+                            $user_stmt = mysqli_prepare($conn, $user_query);
+                            
+                            if ($user_stmt) {
+                                mysqli_stmt_bind_param($user_stmt, "i", $jobseeker_id);
+                                mysqli_stmt_execute($user_stmt);
+                                
+                                // Bind results - PHP5 compatible method
+                                $user_result = array();
+                                
+                                // Create a result object
+                                $result = mysqli_stmt_get_result($user_stmt);
+                                
+                                // If mysqli_stmt_get_result doesn't work due to mysqlnd driver missing, use this alternative
+                                if (!$result) {
+                                    mysqli_stmt_bind_result($user_stmt, 
+                                        $user_result['id'], 
+                                        $user_result['first_name'], 
+                                        $user_result['last_name'], 
+                                        $user_result['email'], 
+                                        $user_result['phone'], 
+                                        $user_result['address'], 
+                                        $user_result['city'], 
+                                        $user_result['state'], 
+                                        $user_result['country'], 
+                                        $user_result['zip_code'], 
+                                        $user_result['skills'], 
+                                        $user_result['education'], 
+                                        $user_result['experience'], 
+                                        $user_result['bio'], 
+                                        $user_result['resume'], 
+                                        $user_result['profile_picture'],
+                                        $user_result['password'],
+                                        $user_result['status'],
+                                        $user_result['created_at'],
+                                        $user_result['updated_at'],
+                                        $user_result['last_login']
+                                    );
+                                    mysqli_stmt_fetch($user_stmt);
+                                    $user_data = $user_result;
+                                } else {
+                                    // If mysqli_stmt_get_result works, use it (requires mysqlnd driver)
+                                    $user_data = mysqli_fetch_assoc($result);
+                                }
+                                
+                                mysqli_stmt_close($user_stmt);
+                            }
+                        } else {
+                            $error_message = "Failed to update profile: " . mysqli_error($conn);
+                        }
+                        
+                        mysqli_stmt_close($update_stmt);
+                    } else {
+                        $error_message = "Database error: " . mysqli_error($conn);
+                    }
                 }
             }
             
@@ -211,7 +281,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
 }
 ?>
 
-<div class="container my-5">
+<!-- Display success/error messages -->
+<div class="container mt-4">
+    <?php if (!empty($success_message)): ?>
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <?php echo $success_message; ?>
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+    <?php endif; ?>
+    
+    <?php if (!empty($error_message)): ?>
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <?php echo $error_message; ?>
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+    <?php endif; ?>
+</div>
+
+<!-- HTML form with Bootstrap styling -->
+<div class="container my-4">
     <div class="row">
         <div class="col-md-12">
             <div class="card">
@@ -219,130 +311,128 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
                     <h4 class="mb-0">Edit Profile</h4>
                 </div>
                 <div class="card-body">
-                    <?php if (!empty($success_message)): ?>
-                        <div class="alert alert-success">
-                            <?php echo $success_message; ?>
-                        </div>
-                    <?php endif; ?>
-                    
-                    <?php if (!empty($error_message)): ?>
-                        <div class="alert alert-danger">
-                            <?php echo $error_message; ?>
-                        </div>
-                    <?php endif; ?>
-                    
-                    <form method="POST" enctype="multipart/form-data">
+                    <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post" enctype="multipart/form-data">
+                        
+                        <!-- Personal Information Section -->
+                        <h5 class="border-bottom pb-2 mb-4">Personal Information</h5>
                         <div class="row">
-                            <!-- Personal Information -->
                             <div class="col-md-6">
-                                <h5 class="mb-3">Personal Information</h5>
-                                
                                 <div class="form-group">
-                                    <label for="first_name">First Name *</label>
-                                    <input type="text" class="form-control" id="first_name" name="first_name" value="<?php echo htmlspecialchars($user_data['first_name'] ?? ''); ?>" required>
+                                    <label for="first_name">First Name <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="first_name" name="first_name" value="<?php echo htmlspecialchars(isset($user_data['first_name']) ? $user_data['first_name'] : ''); ?>" required>
                                 </div>
-                                
+                            </div>
+                            <div class="col-md-6">
                                 <div class="form-group">
-                                    <label for="last_name">Last Name *</label>
-                                    <input type="text" class="form-control" id="last_name" name="last_name" value="<?php echo htmlspecialchars($user_data['last_name'] ?? ''); ?>" required>
+                                    <label for="last_name">Last Name <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="last_name" name="last_name" value="<?php echo htmlspecialchars(isset($user_data['last_name']) ? $user_data['last_name'] : ''); ?>" required>
                                 </div>
-                                
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
                                 <div class="form-group">
-                                    <label for="email">Email *</label>
-                                    <input type="email" class="form-control" id="email" name="email" value="<?php echo htmlspecialchars($user_data['email'] ?? ''); ?>" required>
+                                    <label for="email">Email Address <span class="text-danger">*</span></label>
+                                    <input type="email" class="form-control" id="email" name="email" value="<?php echo htmlspecialchars(isset($user_data['email']) ? $user_data['email'] : ''); ?>" required>
                                 </div>
-                                
+                            </div>
+                            <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="phone">Phone Number</label>
-                                    <input type="text" class="form-control" id="phone" name="phone" value="<?php echo htmlspecialchars($user_data['phone'] ?? ''); ?>">
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label for="address">Address</label>
-                                    <input type="text" class="form-control" id="address" name="address" value="<?php echo htmlspecialchars($user_data['address'] ?? ''); ?>">
-                                </div>
-                                
-                                <div class="form-row">
-                                    <div class="form-group col-md-6">
-                                        <label for="city">City</label>
-                                        <input type="text" class="form-control" id="city" name="city" value="<?php echo htmlspecialchars($user_data['city'] ?? ''); ?>">
-                                    </div>
-                                    <div class="form-group col-md-6">
-                                        <label for="state">State/Province</label>
-                                        <input type="text" class="form-control" id="state" name="state" value="<?php echo htmlspecialchars($user_data['state'] ?? ''); ?>">
-                                    </div>
-                                </div>
-                                
-                                <div class="form-row">
-                                    <div class="form-group col-md-6">
-                                        <label for="country">Country</label>
-                                        <input type="text" class="form-control" id="country" name="country" value="<?php echo htmlspecialchars($user_data['country'] ?? ''); ?>">
-                                    </div>
-                                    <div class="form-group col-md-6">
-                                        <label for="zip_code">ZIP/Postal Code</label>
-                                        <input type="text" class="form-control" id="zip_code" name="zip_code" value="<?php echo htmlspecialchars($user_data['zip_code'] ?? ''); ?>">
-                                    </div>
+                                    <input type="text" class="form-control" id="phone" name="phone" value="<?php echo htmlspecialchars(isset($user_data['phone']) ? $user_data['phone'] : ''); ?>">
                                 </div>
                             </div>
-                            
-                            <!-- Professional Information -->
-                            <div class="col-md-6">
-                                <h5 class="mb-3">Professional Information</h5>
-                                
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="address">Address</label>
+                            <input type="text" class="form-control" id="address" name="address" value="<?php echo htmlspecialchars(isset($user_data['address']) ? $user_data['address'] : ''); ?>">
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-3">
                                 <div class="form-group">
-                                    <label for="skills">Skills</label>
-                                    <textarea class="form-control" id="skills" name="skills" rows="2" placeholder="Enter your skills separated by commas"><?php echo htmlspecialchars($user_data['skills'] ?? ''); ?></textarea>
-                                    <small class="form-text text-muted">E.g., JavaScript, PHP, Project Management, Communication</small>
+                                    <label for="city">City</label>
+                                    <input type="text" class="form-control" id="city" name="city" value="<?php echo htmlspecialchars(isset($user_data['city']) ? $user_data['city'] : ''); ?>">
                                 </div>
-                                
+                            </div>
+                            <div class="col-md-3">
                                 <div class="form-group">
-                                    <label for="education">Education</label>
-                                    <textarea class="form-control" id="education" name="education" rows="3" placeholder="Enter your educational background"><?php echo htmlspecialchars($user_data['education'] ?? ''); ?></textarea>
-                                    <small class="form-text text-muted">Include degrees, institutions, and graduation years</small>
+                                    <label for="state">State</label>
+                                    <input type="text" class="form-control" id="state" name="state" value="<?php echo htmlspecialchars(isset($user_data['state']) ? $user_data['state'] : ''); ?>">
                                 </div>
-                                
+                            </div>
+                            <div class="col-md-3">
                                 <div class="form-group">
-                                    <label for="experience">Work Experience</label>
-                                    <textarea class="form-control" id="experience" name="experience" rows="4" placeholder="Describe your work experience"><?php echo htmlspecialchars($user_data['experience'] ?? ''); ?></textarea>
-                                    <small class="form-text text-muted">Include job titles, companies, dates, and responsibilities</small>
+                                    <label for="country">Country</label>
+                                    <input type="text" class="form-control" id="country" name="country" value="<?php echo htmlspecialchars(isset($user_data['country']) ? $user_data['country'] : ''); ?>">
                                 </div>
-                                
+                            </div>
+                            <div class="col-md-3">
                                 <div class="form-group">
-                                    <label for="bio">Bio/Summary</label>
-                                    <textarea class="form-control" id="bio" name="bio" rows="3" placeholder="Write a short bio or summary about yourself"><?php echo htmlspecialchars($user_data['bio'] ?? ''); ?></textarea>
+                                    <label for="zip_code">Zip/Postal Code</label>
+                                    <input type="text" class="form-control" id="zip_code" name="zip_code" value="<?php echo htmlspecialchars(isset($user_data['zip_code']) ? $user_data['zip_code'] : ''); ?>">
                                 </div>
-                                
-                                <div class="form-group">
-                                    <label for="resume">Resume (PDF, DOC, DOCX, max 5MB)</label>
-                                    <div class="custom-file">
-                                        <input type="file" class="custom-file-input" id="resume" name="resume">
-                                        <label class="custom-file-label" for="resume">Choose file</label>
-                                    </div>
-                                    <?php if (!empty($user_data['resume_path'])): ?>
-                                        <small class="form-text text-muted">
-                                            Current resume: <a href="../uploads/resumes/<?php echo htmlspecialchars($user_data['resume_path']); ?>" target="_blank"><?php echo htmlspecialchars($user_data['resume_path']); ?></a>
-                                        </small>
-                                    <?php endif; ?>
-                                </div>
-                                
+                            </div>
+                        </div>
+                        
+                        <!-- Profile Picture -->
+                        <div class="row mt-3">
+                            <div class="col-md-12">
                                 <div class="form-group">
                                     <label for="profile_picture">Profile Picture (JPG, JPEG, PNG, max 2MB)</label>
-                                    <div class="custom-file">
-                                        <input type="file" class="custom-file-input" id="profile_picture" name="profile_picture">
-                                        <label class="custom-file-label" for="profile_picture">Choose file</label>
+                                    <input type="file" class="form-control-file" id="profile_picture" name="profile_picture">
+                                    <?php if (isset($user_data['profile_picture']) && !empty($user_data['profile_picture'])): ?>
+                                    <div class="mt-2">
+                                        <img src="<?php echo htmlspecialchars($user_data['profile_picture']); ?>" alt="Profile Picture" class="img-thumbnail" style="max-width: 150px;">
+                                        <p class="text-muted small">Current profile picture</p>
                                     </div>
-                                    <?php if (!empty($user_data['profile_picture'])): ?>
-                                        <div class="mt-2">
-                                            <img src="../uploads/profile_pictures/<?php echo htmlspecialchars($user_data['profile_picture']); ?>" alt="Profile Picture" class="img-thumbnail" style="max-width: 150px;">
-                                        </div>
                                     <?php endif; ?>
                                 </div>
                             </div>
                         </div>
                         
-                        <hr>
+                        <!-- Professional Information Section -->
+                        <h5 class="border-bottom pb-2 mb-4 mt-5">Professional Information</h5>
                         
-                        <div class="form-group text-center">
+                        <div class="form-group">
+                            <label for="skills">Skills (separate with commas)</label>
+                            <input type="text" class="form-control" id="skills" name="skills" value="<?php echo htmlspecialchars(isset($user_data['skills']) ? $user_data['skills'] : ''); ?>">
+                            <small class="form-text text-muted">E.g., PHP, JavaScript, HTML, CSS, Project Management</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="education">Education</label>
+                            <textarea class="form-control" id="education" name="education" rows="3"><?php echo htmlspecialchars(isset($user_data['education']) ? $user_data['education'] : ''); ?></textarea>
+                            <small class="form-text text-muted">Include your degrees, institutions, graduation years</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="experience">Work Experience</label>
+                            <textarea class="form-control" id="experience" name="experience" rows="4"><?php echo htmlspecialchars(isset($user_data['experience']) ? $user_data['experience'] : ''); ?></textarea>
+                            <small class="form-text text-muted">Include your previous job positions, companies, years</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="bio">Professional Summary</label>
+                            <textarea class="form-control" id="bio" name="bio" rows="3"><?php echo htmlspecialchars(isset($user_data['bio']) ? $user_data['bio'] : ''); ?></textarea>
+                            <small class="form-text text-muted">A brief description about yourself, your career goals and achievements</small>
+                        </div>
+                        
+                        <!-- Resume Upload -->
+                        <div class="form-group mt-4">
+                            <label for="resume">Resume (PDF, DOC, DOCX, max 5MB)</label>
+                            <input type="file" class="form-control-file" id="resume" name="resume">
+                            <?php if (isset($user_data['resume']) && !empty($user_data['resume'])): ?>
+                            <div class="mt-2">
+                                <p>Current resume: <a href="<?php echo htmlspecialchars($user_data['resume']); ?>" target="_blank"><?php echo basename($user_data['resume']); ?></a></p>
+                            </div>
+                            <?php endif; ?>
+                        </div>
+                        
+                        <!-- Submit Button -->
+                        <div class="form-group mt-5">
                             <button type="submit" name="update_profile" class="btn btn-primary btn-lg">Update Profile</button>
                             <a href="dashboard.php" class="btn btn-secondary btn-lg ml-2">Cancel</a>
                         </div>
