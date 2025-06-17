@@ -352,6 +352,83 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
     <?php endif; ?>
 </div>
 
+<!-- Profile Overview Card -->
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h4 class="mb-0">Profile Overview</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 text-center">
+                            <!-- Profile Image -->
+                            <div class="mb-3">
+                                <?php if (isset($user_data['profile_image']) && !empty($user_data['profile_image']) && $user_data['profile_image'] != 'default.jpg'): ?>
+                                    <img src="<?php echo htmlspecialchars($user_data['profile_image']); ?>" alt="Profile Picture" class="img-thumbnail rounded-circle" style="width: 180px; height: 180px; object-fit: cover;">
+                                <?php else: ?>
+                                    <img src="../assets/images/default.jpg" alt="Default Profile Picture" class="img-thumbnail rounded-circle" style="width: 180px; height: 180px; object-fit: cover;">
+                                <?php endif; ?>
+                            </div>
+                            <h5><?php echo htmlspecialchars(isset($user_data['username']) ? $user_data['username'] : ''); ?></h5>
+                        </div>
+                        <div class="col-md-9">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <!-- Basic Information -->
+                                    <h5 class="border-bottom pb-2 mb-3">Personal Information</h5>
+                                    <p><strong>Name:</strong> <?php echo htmlspecialchars(isset($user_data['first_name']) ? $user_data['first_name'] . ' ' . $user_data['last_name'] : 'Not set'); ?></p>
+                                    <p><strong>Email:</strong> <?php echo htmlspecialchars(isset($user_data['email']) ? $user_data['email'] : 'Not set'); ?></p>
+                                    <p><strong>Phone:</strong> <?php echo htmlspecialchars(isset($user_data['phone']) && !empty($user_data['phone']) ? $user_data['phone'] : 'Not set'); ?></p>
+                                    <p><strong>Gender:</strong> <?php echo htmlspecialchars(isset($user_data['gender']) && !empty($user_data['gender']) ? ucfirst($user_data['gender']) : 'Not set'); ?></p>
+                                    <p><strong>Date of Birth:</strong> <?php echo htmlspecialchars(isset($user_data['date_of_birth']) && !empty($user_data['date_of_birth']) ? $user_data['date_of_birth'] : 'Not set'); ?></p>
+                                </div>
+                                <div class="col-md-6">
+                                    <!-- Location & Professional Info -->
+                                    <h5 class="border-bottom pb-2 mb-3">Location & Professional Details</h5>
+                                    <p><strong>Location:</strong> 
+                                        <?php 
+                                        $location_parts = array();
+                                        if (isset($user_data['city']) && !empty($user_data['city'])) $location_parts[] = $user_data['city'];
+                                        if (isset($user_data['state']) && !empty($user_data['state'])) $location_parts[] = $user_data['state'];
+                                        if (isset($user_data['country']) && !empty($user_data['country'])) $location_parts[] = $user_data['country'];
+                                        echo !empty($location_parts) ? htmlspecialchars(implode(", ", $location_parts)) : 'Not set';
+                                        ?>
+                                    </p>
+                                    <p><strong>Resume:</strong> 
+                                        <?php if (isset($user_data['resume']) && !empty($user_data['resume'])): ?>
+                                            <a href="<?php echo htmlspecialchars($user_data['resume']); ?>" target="_blank">View Resume</a>
+                                        <?php else: ?>
+                                            Not uploaded
+                                        <?php endif; ?>
+                                    </p>
+                                    <p><strong>Skills:</strong> <?php echo htmlspecialchars(isset($user_data['skills']) && !empty($user_data['skills']) ? $user_data['skills'] : 'Not specified'); ?></p>
+                                    <p><strong>Account Status:</strong> 
+                                        <span class="badge badge-<?php echo (isset($user_data['status']) && $user_data['status'] == 'active') ? 'success' : 'warning'; ?>">
+                                            <?php echo htmlspecialchars(isset($user_data['status']) ? ucfirst($user_data['status']) : 'Inactive'); ?>
+                                        </span>
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <!-- Professional Summary (if exists) -->
+                            <?php if (isset($user_data['bio']) && !empty($user_data['bio'])): ?>
+                            <div class="row mt-3">
+                                <div class="col-md-12">
+                                    <h5 class="border-bottom pb-2 mb-3">Professional Summary</h5>
+                                    <p><?php echo htmlspecialchars($user_data['bio']); ?></p>
+                                </div>
+                            </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- HTML form with Bootstrap styling -->
 <div class="container my-4">
     <div class="row">
