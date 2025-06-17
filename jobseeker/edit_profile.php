@@ -37,26 +37,39 @@ if ($user_stmt) {
     if (!$result) {
         mysqli_stmt_bind_result($user_stmt, 
             $user_result['id'], 
-            $user_result['first_name'], 
-            $user_result['last_name'], 
-            $user_result['email'], 
-            $user_result['phone'], 
-            $user_result['address'], 
-            $user_result['city'], 
-            $user_result['state'], 
-            $user_result['country'], 
-            $user_result['zip_code'], 
-            $user_result['skills'], 
-            $user_result['education'], 
-            $user_result['experience'], 
-            $user_result['bio'], 
-            $user_result['resume'], 
-            $user_result['profile_picture'],
+            $user_result['username'],
+            $user_result['email'],
             $user_result['password'],
+            $user_result['user_type'],
+            $user_result['first_name'],
+            $user_result['last_name'],
+            $user_result['gender'],
+            $user_result['date_of_birth'],
+            $user_result['profile_image'],
+            $user_result['phone'],
+            $user_result['address'],
+            $user_result['city'],
+            $user_result['state'],
+            $user_result['country'],
+            $user_result['zip_code'],
+            $user_result['bio'],
+            $user_result['skills'],
+            $user_result['resume'],
+            $user_result['company_name'],
+            $user_result['company_logo'],
+            $user_result['company_description'],
+            $user_result['industry'],
+            $user_result['company_size'],
+            $user_result['website'],
             $user_result['status'],
+            $user_result['is_verified'],
+            $user_result['verification_token'],
+            $user_result['reset_token'],
+            $user_result['reset_token_expiry'],
+            $user_result['remember_token'],
+            $user_result['last_login'],
             $user_result['created_at'],
-            $user_result['updated_at'],
-            $user_result['last_login']
+            $user_result['updated_at']
         );
         mysqli_stmt_fetch($user_stmt);
         $user_data = $user_result;
@@ -73,25 +86,42 @@ if ($user_stmt) {
 // Process form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
     // Get form data
+    $username = isset($_POST['username']) ? trim($_POST['username']) : '';
+    $email = trim($_POST['email']);
     $first_name = trim($_POST['first_name']);
     $last_name = trim($_POST['last_name']);
-    $email = trim($_POST['email']);
+    $gender = isset($_POST['gender']) ? trim($_POST['gender']) : '';
+    $date_of_birth = isset($_POST['date_of_birth']) ? trim($_POST['date_of_birth']) : '';
     $phone = isset($_POST['phone']) ? trim($_POST['phone']) : '';
     $address = isset($_POST['address']) ? trim($_POST['address']) : '';
     $city = isset($_POST['city']) ? trim($_POST['city']) : '';
     $state = isset($_POST['state']) ? trim($_POST['state']) : '';
     $country = isset($_POST['country']) ? trim($_POST['country']) : '';
     $zip_code = isset($_POST['zip_code']) ? trim($_POST['zip_code']) : '';
-    $skills = isset($_POST['skills']) ? trim($_POST['skills']) : '';
-    $education = isset($_POST['education']) ? trim($_POST['education']) : '';
-    $experience = isset($_POST['experience']) ? trim($_POST['experience']) : '';
     $bio = isset($_POST['bio']) ? trim($_POST['bio']) : '';
+    $skills = isset($_POST['skills']) ? trim($_POST['skills']) : '';
     
     // Validate required fields
     if (empty($first_name) || empty($last_name) || empty($email)) {
         $error_message = "First name, last name, and email are required fields.";
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error_message = "Please enter a valid email address.";
+    } elseif (!empty($username) && $username != $user_data['username']) {
+        // Check if username has changed and already exists
+        $username_check_query = "SELECT id FROM users WHERE username = ? AND id != ?";
+        $username_check_stmt = mysqli_prepare($conn, $username_check_query);
+        
+        if ($username_check_stmt) {
+            mysqli_stmt_bind_param($username_check_stmt, "si", $username, $jobseeker_id);
+            mysqli_stmt_execute($username_check_stmt);
+            mysqli_stmt_store_result($username_check_stmt);
+            
+            if (mysqli_stmt_num_rows($username_check_stmt) > 0) {
+                $error_message = "This username is already in use by another account.";
+            }
+            
+            mysqli_stmt_close($username_check_stmt);
+        }
     } else {
         // Check if email already exists for another user
         $email_check_query = "SELECT id FROM users WHERE email = ? AND id != ?";
@@ -136,56 +166,62 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
                     }
                 }
                 
-                // Handle profile picture upload
-                $profile_pic_path = isset($user_data['profile_picture']) ? $user_data['profile_picture'] : '';
-                if (isset($_FILES['profile_picture']) && $_FILES['profile_picture']['size'] > 0) {
-                    $pic_dir = "../uploads/profile_pics/";
+                // Handle profile image upload
+                $profile_image_path = isset($user_data['profile_image']) ? $user_data['profile_image'] : 'default.jpg';
+                if (isset($_FILES['profile_image']) && $_FILES['profile_image']['size'] > 0) {
+                    $pic_dir = "../uploads/profile_images/";
                     
                     // Create directory if it doesn't exist
                     if (!file_exists($pic_dir)) {
                         mkdir($pic_dir, 0755, true);
                     }
                     
-                    $pic_name = $jobseeker_id . "_" . basename($_FILES["profile_picture"]["name"]);
-                    $profile_pic_path = $pic_dir . $pic_name;
+                    $pic_name = $jobseeker_id . "_" . basename($_FILES["profile_image"]["name"]);
+                    $profile_image_path = $pic_dir . $pic_name;
                     
                     // Define allowed image types
                     $allowed_types = array('jpg', 'jpeg', 'png');
-                    $file_ext = strtolower(pathinfo($profile_pic_path, PATHINFO_EXTENSION));
+                    $file_ext = strtolower(pathinfo($profile_image_path, PATHINFO_EXTENSION));
                     
                     if (!in_array($file_ext, $allowed_types)) {
                         $error_message = "Only JPG, JPEG, and PNG files are allowed for profile picture.";
-                    } elseif ($_FILES["profile_picture"]["size"] > 2000000) { // 2MB max
+                    } elseif ($_FILES["profile_image"]["size"] > 2000000) { // 2MB max
                         $error_message = "Profile picture is too large. Max size is 2MB.";
                     } else {
-                        if (move_uploaded_file($_FILES["profile_picture"]["tmp_name"], $profile_pic_path)) {
+                        if (move_uploaded_file($_FILES["profile_image"]["tmp_name"], $profile_image_path)) {
                             // Successfully uploaded
                         } else {
                             $error_message = "Failed to upload profile picture.";
-                            $profile_pic_path = isset($user_data['profile_picture']) ? $user_data['profile_picture'] : ''; // keep existing picture
+                            $profile_image_path = isset($user_data['profile_image']) ? $user_data['profile_image'] : 'default.jpg'; // keep existing picture
                         }
                     }
                 }
                 
                 // If no errors, update the user data
                 if (empty($error_message)) {
+                    // Set username to current value if not provided
+                    if (empty($username)) {
+                        $username = $user_data['username'];
+                    }
+                    
                     $update_query = "UPDATE users SET 
+                                    username = ?,
+                                    email = ?, 
                                     first_name = ?, 
                                     last_name = ?, 
-                                    email = ?, 
+                                    gender = ?,
+                                    date_of_birth = ?,
+                                    profile_image = ?,
                                     phone = ?, 
                                     address = ?, 
                                     city = ?, 
                                     state = ?, 
                                     country = ?, 
                                     zip_code = ?, 
-                                    skills = ?, 
-                                    education = ?, 
-                                    experience = ?, 
                                     bio = ?, 
-                                    resume = ?, 
-                                    profile_picture = ?, 
-                                    updated_at = NOW() 
+                                    skills = ?, 
+                                    resume = ?,
+                                    updated_at = NOW()
                                     WHERE id = ?";
                     
                     $update_stmt = mysqli_prepare($conn, $update_query);
@@ -193,22 +229,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
                     if ($update_stmt) {
                         mysqli_stmt_bind_param(
                             $update_stmt, 
-                            "ssssssssssssssi", 
+                            "ssssssssssssssssi", 
+                            $username,
+                            $email, 
                             $first_name, 
                             $last_name, 
-                            $email, 
+                            $gender,
+                            $date_of_birth,
+                            $profile_image_path,
                             $phone, 
                             $address, 
                             $city, 
                             $state, 
                             $country, 
                             $zip_code, 
-                            $skills, 
-                            $education, 
-                            $experience, 
                             $bio, 
-                            $resume_path, 
-                            $profile_pic_path, 
+                            $skills, 
+                            $resume_path,
                             $jobseeker_id
                         );
                         
@@ -232,26 +269,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
                                 if (!$result) {
                                     mysqli_stmt_bind_result($user_stmt, 
                                         $user_result['id'], 
-                                        $user_result['first_name'], 
-                                        $user_result['last_name'], 
-                                        $user_result['email'], 
-                                        $user_result['phone'], 
-                                        $user_result['address'], 
-                                        $user_result['city'], 
-                                        $user_result['state'], 
-                                        $user_result['country'], 
-                                        $user_result['zip_code'], 
-                                        $user_result['skills'], 
-                                        $user_result['education'], 
-                                        $user_result['experience'], 
-                                        $user_result['bio'], 
-                                        $user_result['resume'], 
-                                        $user_result['profile_picture'],
+                                        $user_result['username'],
+                                        $user_result['email'],
                                         $user_result['password'],
+                                        $user_result['user_type'],
+                                        $user_result['first_name'],
+                                        $user_result['last_name'],
+                                        $user_result['gender'],
+                                        $user_result['date_of_birth'],
+                                        $user_result['profile_image'],
+                                        $user_result['phone'],
+                                        $user_result['address'],
+                                        $user_result['city'],
+                                        $user_result['state'],
+                                        $user_result['country'],
+                                        $user_result['zip_code'],
+                                        $user_result['bio'],
+                                        $user_result['skills'],
+                                        $user_result['resume'],
+                                        $user_result['company_name'],
+                                        $user_result['company_logo'],
+                                        $user_result['company_description'],
+                                        $user_result['industry'],
+                                        $user_result['company_size'],
+                                        $user_result['website'],
                                         $user_result['status'],
+                                        $user_result['is_verified'],
+                                        $user_result['verification_token'],
+                                        $user_result['reset_token'],
+                                        $user_result['reset_token_expiry'],
+                                        $user_result['remember_token'],
+                                        $user_result['last_login'],
                                         $user_result['created_at'],
-                                        $user_result['updated_at'],
-                                        $user_result['last_login']
+                                        $user_result['updated_at']
                                     );
                                     mysqli_stmt_fetch($user_stmt);
                                     $user_data = $user_result;
@@ -313,8 +363,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
                 <div class="card-body">
                     <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post" enctype="multipart/form-data">
                         
+                        <!-- Account Information Section -->
+                        <h5 class="border-bottom pb-2 mb-4">Account Information</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="username">Username</label>
+                                    <input type="text" class="form-control" id="username" name="username" value="<?php echo htmlspecialchars(isset($user_data['username']) ? $user_data['username'] : ''); ?>">
+                                    <small class="form-text text-muted">Leave blank to keep current username.</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="email">Email Address <span class="text-danger">*</span></label>
+                                    <input type="email" class="form-control" id="email" name="email" value="<?php echo htmlspecialchars(isset($user_data['email']) ? $user_data['email'] : ''); ?>" required>
+                                </div>
+                            </div>
+                        </div>
+                        
                         <!-- Personal Information Section -->
-                        <h5 class="border-bottom pb-2 mb-4">Personal Information</h5>
+                        <h5 class="border-bottom pb-2 mb-4 mt-4">Personal Information</h5>
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
@@ -333,10 +401,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label for="email">Email Address <span class="text-danger">*</span></label>
-                                    <input type="email" class="form-control" id="email" name="email" value="<?php echo htmlspecialchars(isset($user_data['email']) ? $user_data['email'] : ''); ?>" required>
+                                    <label for="gender">Gender</label>
+                                    <select class="form-control" id="gender" name="gender">
+                                        <option value="">-- Select Gender --</option>
+                                        <option value="male" <?php echo (isset($user_data['gender']) && $user_data['gender'] == 'male') ? 'selected' : ''; ?>>Male</option>
+                                        <option value="female" <?php echo (isset($user_data['gender']) && $user_data['gender'] == 'female') ? 'selected' : ''; ?>>Female</option>
+                                        <option value="other" <?php echo (isset($user_data['gender']) && $user_data['gender'] == 'other') ? 'selected' : ''; ?>>Other</option>
+                                    </select>
                                 </div>
                             </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="date_of_birth">Date of Birth</label>
+                                    <input type="date" class="form-control" id="date_of_birth" name="date_of_birth" value="<?php echo htmlspecialchars(isset($user_data['date_of_birth']) ? $user_data['date_of_birth'] : ''); ?>">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="phone">Phone Number</label>
@@ -381,11 +463,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
                         <div class="row mt-3">
                             <div class="col-md-12">
                                 <div class="form-group">
-                                    <label for="profile_picture">Profile Picture (JPG, JPEG, PNG, max 2MB)</label>
-                                    <input type="file" class="form-control-file" id="profile_picture" name="profile_picture">
-                                    <?php if (isset($user_data['profile_picture']) && !empty($user_data['profile_picture'])): ?>
+                                    <label for="profile_image">Profile Picture (JPG, JPEG, PNG, max 2MB)</label>
+                                    <input type="file" class="form-control-file" id="profile_image" name="profile_image">
+                                    <?php if (isset($user_data['profile_image']) && !empty($user_data['profile_image']) && $user_data['profile_image'] != 'default.jpg'): ?>
                                     <div class="mt-2">
-                                        <img src="<?php echo htmlspecialchars($user_data['profile_picture']); ?>" alt="Profile Picture" class="img-thumbnail" style="max-width: 150px;">
+                                        <img src="<?php echo htmlspecialchars($user_data['profile_image']); ?>" alt="Profile Picture" class="img-thumbnail" style="max-width: 150px;">
                                         <p class="text-muted small">Current profile picture</p>
                                     </div>
                                     <?php endif; ?>
@@ -403,20 +485,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
                         </div>
                         
                         <div class="form-group">
-                            <label for="education">Education</label>
-                            <textarea class="form-control" id="education" name="education" rows="3"><?php echo htmlspecialchars(isset($user_data['education']) ? $user_data['education'] : ''); ?></textarea>
-                            <small class="form-text text-muted">Include your degrees, institutions, graduation years</small>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="experience">Work Experience</label>
-                            <textarea class="form-control" id="experience" name="experience" rows="4"><?php echo htmlspecialchars(isset($user_data['experience']) ? $user_data['experience'] : ''); ?></textarea>
-                            <small class="form-text text-muted">Include your previous job positions, companies, years</small>
-                        </div>
-                        
-                        <div class="form-group">
                             <label for="bio">Professional Summary</label>
-                            <textarea class="form-control" id="bio" name="bio" rows="3"><?php echo htmlspecialchars(isset($user_data['bio']) ? $user_data['bio'] : ''); ?></textarea>
+                            <textarea class="form-control" id="bio" name="bio" rows="4"><?php echo htmlspecialchars(isset($user_data['bio']) ? $user_data['bio'] : ''); ?></textarea>
                             <small class="form-text text-muted">A brief description about yourself, your career goals and achievements</small>
                         </div>
                         
