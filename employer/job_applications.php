@@ -15,6 +15,62 @@ include_once("../includes/header.php");
 // Get employer ID from session
 $employer_id = $_SESSION['user_id'];
 
+// Process application status update if form is submitted
+$success_message = "";
+$error_message = "";
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['status']) && isset($_POST['application_id'])) {
+    $application_id = intval($_POST['application_id']);
+    $new_status = $_POST['status'];
+    
+    // Validate status
+    $valid_statuses = array('pending', 'reviewed', 'shortlisted', 'hired', 'rejected');
+    
+    if (in_array($new_status, $valid_statuses)) {
+        // Make sure the application belongs to a job posted by this employer
+        $verify_query = "SELECT COUNT(*) AS count FROM job_applications ja 
+                        JOIN job_postings jp ON ja.job_id = jp.id 
+                        WHERE ja.id = ? AND jp.user_id = ?";
+        
+        $verify_stmt = mysqli_prepare($conn, $verify_query);
+        
+        if ($verify_stmt) {
+            mysqli_stmt_bind_param($verify_stmt, "ii", $application_id, $employer_id);
+            mysqli_stmt_execute($verify_stmt);
+            $verify_result = mysqli_stmt_get_result($verify_stmt);
+            $verify_row = mysqli_fetch_assoc($verify_result);
+            
+            if ($verify_row['count'] > 0) {
+                // Application verified, update the status
+                $update_query = "UPDATE job_applications SET status = ? WHERE id = ?";
+                $update_stmt = mysqli_prepare($conn, $update_query);
+                
+                if ($update_stmt) {
+                    mysqli_stmt_bind_param($update_stmt, "si", $new_status, $application_id);
+                    
+                    if (mysqli_stmt_execute($update_stmt)) {
+                        $success_message = "Application status has been updated successfully to " . ucfirst($new_status);
+                    } else {
+                        $error_message = "Failed to update application status: " . mysqli_error($conn);
+                    }
+                    
+                    mysqli_stmt_close($update_stmt);
+                } else {
+                    $error_message = "Database error: " . mysqli_error($conn);
+                }
+            } else {
+                $error_message = "You don't have permission to update this application.";
+            }
+            
+            mysqli_stmt_close($verify_stmt);
+        } else {
+            $error_message = "Database error: " . mysqli_error($conn);
+        }
+    } else {
+        $error_message = "Invalid status value.";
+    }
+}
+
 // Get filter parameters
 $job_filter = isset($_GET['job_id']) ? intval($_GET['job_id']) : 0;
 $status_filter = isset($_GET['status']) ? $_GET['status'] : '';
@@ -115,7 +171,11 @@ function getStatusColor($status) {
 <div class="container mt-4">
     <h1>Job Applications</h1>
     
-    <?php if(isset($error_message)): ?>
+    <?php if(!empty($success_message)): ?>
+        <div class="alert alert-success"><?php echo htmlspecialchars($success_message); ?></div>
+    <?php endif; ?>
+    
+    <?php if(!empty($error_message)): ?>
         <div class="alert alert-danger"><?php echo htmlspecialchars($error_message); ?></div>
     <?php endif; ?>
     
@@ -191,7 +251,7 @@ function getStatusColor($status) {
                                 </span>
                             </td>
                             <td>
-                                <div class="btn-group">
+                            <div class="btn-group">
                                     <a href="view_application.php?id=<?php echo $application['id']; ?>" 
                                        class="btn btn-sm btn-outline-primary">
                                         View Details
@@ -203,21 +263,21 @@ function getStatusColor($status) {
                                     </button>
                                     <ul class="dropdown-menu">
                                         <li>
-                                            <form action="update_status.php" method="POST">
+                                            <form action="job_applications.php" method="POST">
                                                 <input type="hidden" name="application_id" value="<?php echo $application['id']; ?>">
                                                 <input type="hidden" name="status" value="reviewed">
                                                 <button type="submit" class="dropdown-item">Mark as Reviewed</button>
                                             </form>
                                         </li>
                                         <li>
-                                            <form action="update_status.php" method="POST">
+                                            <form action="job_applications.php" method="POST">
                                                 <input type="hidden" name="application_id" value="<?php echo $application['id']; ?>">
                                                 <input type="hidden" name="status" value="shortlisted">
                                                 <button type="submit" class="dropdown-item">Shortlist</button>
                                             </form>
                                         </li>
                                         <li>
-                                            <form action="update_status.php" method="POST">
+                                            <form action="job_applications.php" method="POST">
                                                 <input type="hidden" name="application_id" value="<?php echo $application['id']; ?>">
                                                 <input type="hidden" name="status" value="hired">
                                                 <button type="submit" class="dropdown-item">Mark as Hired</button>
@@ -225,7 +285,7 @@ function getStatusColor($status) {
                                         </li>
                                         <li class="divider"></li>
                                         <li>
-                                            <form action="update_status.php" method="POST">
+                                            <form action="job_applications.php" method="POST">
                                                 <input type="hidden" name="application_id" value="<?php echo $application['id']; ?>">
                                                 <input type="hidden" name="status" value="rejected">
                                                 <button type="submit" class="dropdown-item text-danger">Reject</button>
