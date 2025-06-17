@@ -440,20 +440,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
                 <div class="card-body">
                     <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post" enctype="multipart/form-data">
                         
-                        <!-- Account Information Section -->
-                        <h5 class="border-bottom pb-2 mb-4">Account Information</h5>
+                         <!-- Account Information Section -->
+                         <h5 class="border-bottom pb-2 mb-4">Account Information</h5>
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="username">Username</label>
-                                    <input type="text" class="form-control" id="username" name="username" value="<?php echo htmlspecialchars(isset($user_data['username']) ? $user_data['username'] : ''); ?>">
-                                    <small class="form-text text-muted">Leave blank to keep current username.</small>
+                                    <input type="text" class="form-control" id="username" name="username" value="<?php echo htmlspecialchars(isset($user_data['username']) ? $user_data['username'] : ''); ?>" readonly disabled>
+                                    <small class="form-text text-muted">Username cannot be changed after account creation.</small>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="email">Email Address <span class="text-danger">*</span></label>
-                                    <input type="email" class="form-control" id="email" name="email" value="<?php echo htmlspecialchars(isset($user_data['email']) ? $user_data['email'] : ''); ?>" required>
+                                    <input type="email" class="form-control" id="email" name="email" value="<?php echo htmlspecialchars(isset($user_data['email']) ? $user_data['email'] : ''); ?>" readonly disabled>
+                                    <small class="form-text text-muted">Email address cannot be changed. Contact support if needed.</small>
                                 </div>
                             </div>
                         </div>
@@ -499,39 +500,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="phone">Phone Number</label>
-                                    <input type="text" class="form-control" id="phone" name="phone" value="<?php echo htmlspecialchars(isset($user_data['phone']) ? $user_data['phone'] : ''); ?>">
+                                    <input type="tel" class="form-control" id="phone" name="phone" 
+                                           value="<?php echo htmlspecialchars(isset($user_data['phone']) ? $user_data['phone'] : ''); ?>"
+                                           pattern="[0-9]{10,15}"
+                                           title="Phone number should be between 10-15 digits with no spaces or special characters">
+                                    <small class="form-text text-muted">Format: 10-15 digits with no spaces or special characters</small>
                                 </div>
                             </div>
                         </div>
                         
                         <div class="form-group">
                             <label for="address">Address</label>
-                            <input type="text" class="form-control" id="address" name="address" value="<?php echo htmlspecialchars(isset($user_data['address']) ? $user_data['address'] : ''); ?>">
+                            <input type="text" class="form-control" id="address" name="address" 
+                                   value="<?php echo htmlspecialchars(isset($user_data['address']) ? $user_data['address'] : ''); ?>"
+                                   maxlength="255">
                         </div>
                         
                         <div class="row">
                             <div class="col-md-3">
                                 <div class="form-group">
                                     <label for="city">City</label>
-                                    <input type="text" class="form-control" id="city" name="city" value="<?php echo htmlspecialchars(isset($user_data['city']) ? $user_data['city'] : ''); ?>">
+                                    <input type="text" class="form-control" id="city" name="city" 
+                                           value="<?php echo htmlspecialchars(isset($user_data['city']) ? $user_data['city'] : ''); ?>"
+                                           pattern="[A-Za-z ]{2,50}"
+                                           title="City name should contain only letters and spaces (2-50 characters)">
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <div class="form-group">
                                     <label for="state">State</label>
-                                    <input type="text" class="form-control" id="state" name="state" value="<?php echo htmlspecialchars(isset($user_data['state']) ? $user_data['state'] : ''); ?>">
+                                    <input type="text" class="form-control" id="state" name="state" 
+                                           value="<?php echo htmlspecialchars(isset($user_data['state']) ? $user_data['state'] : ''); ?>"
+                                           pattern="[A-Za-z ]{2,50}"
+                                           title="State name should contain only letters and spaces (2-50 characters)">
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <div class="form-group">
                                     <label for="country">Country</label>
-                                    <input type="text" class="form-control" id="country" name="country" value="<?php echo htmlspecialchars(isset($user_data['country']) ? $user_data['country'] : ''); ?>">
+                                    <input type="text" class="form-control" id="country" name="country" 
+                                           value="<?php echo htmlspecialchars(isset($user_data['country']) ? $user_data['country'] : ''); ?>"
+                                           pattern="[A-Za-z ]{2,50}"
+                                           title="Country name should contain only letters and spaces (2-50 characters)">
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <div class="form-group">
                                     <label for="zip_code">Zip/Postal Code</label>
-                                    <input type="text" class="form-control" id="zip_code" name="zip_code" value="<?php echo htmlspecialchars(isset($user_data['zip_code']) ? $user_data['zip_code'] : ''); ?>">
+                                    <input type="text" class="form-control" id="zip_code" name="zip_code" 
+                                           value="<?php echo htmlspecialchars(isset($user_data['zip_code']) ? $user_data['zip_code'] : ''); ?>"
+                                           pattern="[A-Za-z0-9- ]{3,20}"
+                                           title="Postal code should be 3-20 characters (letters, numbers, hyphens, and spaces only)">
                                 </div>
                             </div>
                         </div>
@@ -557,20 +576,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
                         
                         <div class="form-group">
                             <label for="skills">Skills (separate with commas)</label>
-                            <input type="text" class="form-control" id="skills" name="skills" value="<?php echo htmlspecialchars(isset($user_data['skills']) ? $user_data['skills'] : ''); ?>">
+                            <input type="text" class="form-control" id="skills" name="skills" 
+                                   value="<?php echo htmlspecialchars(isset($user_data['skills']) ? $user_data['skills'] : ''); ?>"
+                                   maxlength="1000">
                             <small class="form-text text-muted">E.g., PHP, JavaScript, HTML, CSS, Project Management</small>
                         </div>
                         
                         <div class="form-group">
                             <label for="bio">Professional Summary</label>
-                            <textarea class="form-control" id="bio" name="bio" rows="4"><?php echo htmlspecialchars(isset($user_data['bio']) ? $user_data['bio'] : ''); ?></textarea>
-                            <small class="form-text text-muted">A brief description about yourself, your career goals and achievements</small>
+                            <textarea class="form-control" id="bio" name="bio" rows="4" maxlength="1000"><?php echo htmlspecialchars(isset($user_data['bio']) ? $user_data['bio'] : ''); ?></textarea>
+                            <small class="form-text text-muted">A brief description about yourself, your career goals and achievements (max 1000 characters)</small>
+                            <div class="text-right">
+                                <small id="bio-counter" class="text-muted">0/1000 characters</small>
+                            </div>
                         </div>
                         
                         <!-- Resume Upload -->
                         <div class="form-group mt-4">
                             <label for="resume">Resume (PDF, DOC, DOCX, max 5MB)</label>
-                            <input type="file" class="form-control-file" id="resume" name="resume">
+                            <input type="file" class="form-control-file" id="resume" name="resume" 
+                                   accept=".pdf,.doc,.docx"
+                                   onchange="validateFileSize(this, 5);">
+                            <small class="form-text text-muted">Allowed formats: PDF, DOC, DOCX. Maximum size: 5MB</small>
                             <?php if (isset($user_data['resume']) && !empty($user_data['resume'])): ?>
                             <div class="mt-2">
                                 <p>Current resume: <a href="<?php echo htmlspecialchars($user_data['resume']); ?>" target="_blank"><?php echo basename($user_data['resume']); ?></a></p>
