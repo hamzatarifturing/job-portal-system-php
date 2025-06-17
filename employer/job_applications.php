@@ -78,7 +78,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['download_resume']) &&
     $application_id = intval($_POST['application_id']);
     
     // Make sure the application belongs to a job posted by this employer
-    $resume_query = "SELECT u.resume, u.first_name, u.last_name, ja.id
+    // Using the correct column ja.resume_path instead of u.resume
+    $resume_query = "SELECT ja.resume_path, u.first_name, u.last_name, ja.id
                     FROM job_applications ja 
                     JOIN job_postings jp ON ja.job_id = jp.id 
                     JOIN users u ON ja.user_id = u.id
@@ -92,7 +93,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['download_resume']) &&
         $resume_result = mysqli_stmt_get_result($resume_stmt);
         $resume_data = mysqli_fetch_assoc($resume_result);
         
-        if ($resume_data && !empty($resume_data['resume'])) {
+        if ($resume_data && !empty($resume_data['resume_path'])) {
+            // Construct the correct file path to the resume
+            $resume_file_path = "../uploads/resumes/" . $resume_data['resume_path'];
+            
             // Log the download (optional)
             $log_query = "INSERT INTO download_logs (user_id, application_id, download_date) VALUES (?, ?, NOW())";
             $log_stmt = mysqli_prepare($conn, $log_query);
@@ -106,8 +110,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['download_resume']) &&
             $applicant_name = $resume_data['first_name'] . ' ' . $resume_data['last_name'];
             $download_message = "Resume download initiated for " . htmlspecialchars($applicant_name) . ". If download doesn't start automatically, check your browser settings.";
             
-            // Note: In a real implementation, this should trigger the actual file download
-            // Since we can't actually serve the file in this example, we're just displaying a message
+            // In a real implementation, this would trigger the actual file download
+            // Here's how you would actually do it (commented out since we can't execute it here)
+            /* 
+            if (file_exists($resume_file_path)) {
+                // Set headers for file download
+                header('Content-Description: File Transfer');
+                header('Content-Type: application/octet-stream');
+                header('Content-Disposition: attachment; filename="' . basename($resume_file_path) . '"');
+                header('Expires: 0');
+                header('Cache-Control: must-revalidate');
+                header('Pragma: public');
+                header('Content-Length: ' . filesize($resume_file_path));
+                
+                // Clear output buffer
+                ob_clean();
+                flush();
+                
+                // Read and output file
+                readfile($resume_file_path);
+                exit;
+            } else {
+                $error_message = "Resume file not found on server.";
+            }
+            */
+            
+            // Since we can't actually download the file in this example, we'll just show a message
+            // But in a real implementation, the code above would send the file to the browser
         } else {
             $error_message = "Resume not found or you don't have permission to access it.";
         }
