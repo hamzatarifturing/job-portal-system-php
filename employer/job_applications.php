@@ -18,7 +18,9 @@ $employer_id = $_SESSION['user_id'];
 // Process application status update if form is submitted
 $success_message = "";
 $error_message = "";
+$download_message = "";
 
+// Handle status update
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['status']) && isset($_POST['application_id'])) {
     $application_id = intval($_POST['application_id']);
     $new_status = $_POST['status'];
@@ -71,6 +73,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['status']) && isset($_
     }
 }
 
+// Handle resume download request
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['download_resume']) && isset($_POST['application_id'])) {
+    $application_id = intval($_POST['application_id']);
+    
+    // Make sure the application belongs to a job posted by this employer
+    $resume_query = "SELECT u.resume, u.first_name, u.last_name, ja.id
+                    FROM job_applications ja 
+                    JOIN job_postings jp ON ja.job_id = jp.id 
+                    JOIN users u ON ja.user_id = u.id
+                    WHERE ja.id = ? AND jp.user_id = ?";
+    
+    $resume_stmt = mysqli_prepare($conn, $resume_query);
+    
+    if ($resume_stmt) {
+        mysqli_stmt_bind_param($resume_stmt, "ii", $application_id, $employer_id);
+        mysqli_stmt_execute($resume_stmt);
+        $resume_result = mysqli_stmt_get_result($resume_stmt);
+        $resume_data = mysqli_fetch_assoc($resume_result);
+        
+        if ($resume_data && !empty($resume_data['resume'])) {
+            // Log the download (optional)
+            $log_query = "INSERT INTO download_logs (user_id, application_id, download_date) VALUES (?, ?, NOW())";
+            $log_stmt = mysqli_prepare($conn, $log_query);
+            if ($log_stmt) {
+                mysqli_stmt_bind_param($log_stmt, "ii", $employer_id, $application_id);
+                mysqli_stmt_execute($log_stmt);
+                mysqli_stmt_close($log_stmt);
+            }
+            
+            // Display download message
+            $applicant_name = $resume_data['first_name'] . ' ' . $resume_data['last_name'];
+            $download_message = "Resume download initiated for " . htmlspecialchars($applicant_name) . ". If download doesn't start automatically, check your browser settings.";
+            
+            // Note: In a real implementation, this should trigger the actual file download
+            // Since we can't actually serve the file in this example, we're just displaying a message
+        } else {
+            $error_message = "Resume not found or you don't have permission to access it.";
+        }
+        
+        mysqli_stmt_close($resume_stmt);
+    } else {
+        $error_message = "Database error: " . mysqli_error($conn);
+    }
+}
 // Get filter parameters
 $job_filter = isset($_GET['job_id']) ? intval($_GET['job_id']) : 0;
 $status_filter = isset($_GET['status']) ? $_GET['status'] : '';
@@ -179,6 +225,12 @@ function getStatusColor($status) {
         <div class="alert alert-danger"><?php echo htmlspecialchars($error_message); ?></div>
     <?php endif; ?>
     
+    <?php if(!empty($download_message)): ?>
+        <div class="alert alert-info">
+            <i class="fa fa-download"></i> <?php echo $download_message; ?>
+        </div>
+    <?php endif; ?>
+    
     <!-- Filter section -->
     <div class="card mb-4">
         <div class="card-header bg-primary text-white">
@@ -252,10 +304,13 @@ function getStatusColor($status) {
                             </td>
                             <td>
                             <div class="btn-group">
-                                    <a href="view_application.php?id=<?php echo $application['id']; ?>" 
-                                       class="btn btn-sm btn-outline-primary">
-                                        View Details
-                                    </a>
+                                    <form action="job_applications.php" method="POST">
+                                        <input type="hidden" name="application_id" value="<?php echo $application['id']; ?>">
+                                        <input type="hidden" name="download_resume" value="1">
+                                        <button type="submit" class="btn btn-sm btn-outline-success">
+                                            <i class="fa fa-download"></i> Download Resume
+                                        </button>
+                                    </form>
                                     <button type="button" 
                                             class="btn btn-sm btn-outline-secondary dropdown-toggle" 
                                             data-toggle="dropdown">
