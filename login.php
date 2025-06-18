@@ -53,11 +53,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     $update_query = "UPDATE users SET last_login = NOW() WHERE id = " . $user['id'];
                     mysqli_query($conn, $update_query);
                     
-                    // Redirect based on user type
-                    if ($user['user_type'] == 'jobseeker') {
+                    // After successful login, redirect based on user_type
+                    if($user['user_type'] == 'jobseeker') {
                         header("Location: jobseeker/dashboard.php");
+                        exit();
+                    } elseif($user['user_type'] == 'admin') {
+                        header("Location: admin/dashboard.php");
+                        exit();
                     } else {
                         header("Location: employer/dashboard.php");
+                        exit();
                     }
                     exit();
                 } else if ($user['status'] == 'inactive') {
