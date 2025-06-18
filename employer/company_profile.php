@@ -230,7 +230,7 @@ $company_sizes = array(
         <div class="col-12">
             <div class="card border-primary">
                 <div class="card-body">
-                    <div class="row align-items-center">
+                <div class="row align-items-center">
                         <div class="col-md-3 text-center mb-3 mb-md-0">
                             <?php if(isset($user_data['company_logo']) && !empty($user_data['company_logo'])): ?>
                                 <img src="<?php echo htmlspecialchars($user_data['company_logo']); ?>" alt="Company Logo" class="img-fluid" style="max-width: 150px; max-height: 150px; object-fit: contain;">
@@ -239,36 +239,79 @@ $company_sizes = array(
                                     <i class="fa fa-building fa-4x text-secondary"></i>
                                 </div>
                             <?php endif; ?>
+                            
+                            <!-- Employer Details Card -->
+                            <div class="card border-light mt-3">
+                                <div class="card-body p-2 text-left">
+                                    <h6 class="card-title border-bottom pb-2 text-primary">
+                                        <i class="fa fa-user-tie mr-1"></i> Employer Info
+                                    </h6>
+                                    <p class="mb-1 small">
+                                        <strong><?php echo htmlspecialchars($user_data['first_name'] . ' ' . $user_data['last_name']); ?></strong>
+                                    </p>
+                                    <p class="mb-1 small text-truncate">
+                                        <i class="fa fa-envelope mr-1 text-secondary"></i> 
+                                        <?php echo htmlspecialchars($user_data['email']); ?>
+                                    </p>
+                                    <?php if(!empty($user_data['phone'])): ?>
+                                    <p class="mb-0 small">
+                                        <i class="fa fa-phone mr-1 text-secondary"></i> 
+                                        <?php echo htmlspecialchars($user_data['phone']); ?>
+                                    </p>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
                         </div>
+                        
                         <div class="col-md-6">
                             <h3 class="mb-1"><?php echo htmlspecialchars($user_data['company_name'] ? $user_data['company_name'] : 'Company Name Not Set'); ?></h3>
-                            <?php if(!empty($user_data['industry'])): ?>
-                                <p class="text-muted mb-2">
-                                    <i class="fa fa-industry mr-2"></i> <?php echo htmlspecialchars($user_data['industry']); ?>
-                                </p>
-                            <?php endif; ?>
-                            <?php if(!empty($user_data['company_size'])): ?>
-                                <p class="mb-2">
-                                    <i class="fa fa-users mr-2"></i> <?php echo htmlspecialchars($user_data['company_size']); ?>
-                                </p>
-                            <?php endif; ?>
+                            
+                            <div class="d-flex align-items-center flex-wrap">
+                                <?php if(!empty($user_data['industry'])): ?>
+                                    <span class="badge badge-light mr-2 mb-2 p-2">
+                                        <i class="fa fa-industry mr-1"></i> <?php echo htmlspecialchars($user_data['industry']); ?>
+                                    </span>
+                                <?php endif; ?>
+                                
+                                <?php if(!empty($user_data['company_size'])): ?>
+                                    <span class="badge badge-light mr-2 mb-2 p-2">
+                                        <i class="fa fa-users mr-1"></i> <?php echo htmlspecialchars($user_data['company_size']); ?>
+                                    </span>
+                                <?php endif; ?>
+                                
+                                <?php
+                                // Location display if available
+                                $location_parts = array();
+                                if(!empty($user_data['city'])) $location_parts[] = htmlspecialchars($user_data['city']);
+                                if(!empty($user_data['country'])) $location_parts[] = htmlspecialchars($user_data['country']);
+                                
+                                if(!empty($location_parts)): 
+                                ?>
+                                    <span class="badge badge-light mr-2 mb-2 p-2">
+                                        <i class="fa fa-map-marker-alt mr-1"></i> <?php echo implode(", ", $location_parts); ?>
+                                    </span>
+                                <?php endif; ?>
+                            </div>
+                            
                             <?php if(!empty($user_data['website'])): ?>
                                 <p class="mb-2">
-                                    <i class="fa fa-globe mr-2"></i>
+                                    <i class="fa fa-globe mr-2 text-primary"></i>
                                     <a href="<?php echo htmlspecialchars($user_data['website']); ?>" target="_blank"><?php echo htmlspecialchars(preg_replace("(^https?://)", "", $user_data['website'])); ?></a>
                                 </p>
                             <?php endif; ?>
+                            
                             <?php if(!empty($user_data['company_description'])): ?>
-                                <div class="mt-2">
-                                    <small class="text-muted d-block mb-1">About:</small>
-                                    <p class="small"><?php echo nl2br(htmlspecialchars(substr($user_data['company_description'], 0, 150))); ?>
-                                    <?php if(strlen($user_data['company_description']) > 150): ?>
+                                <div class="mt-3">
+                                    <h6 class="text-muted mb-2"><i class="fa fa-info-circle mr-1"></i> About the Company:</h6>
+                                    <p><?php echo nl2br(htmlspecialchars(substr($user_data['company_description'], 0, 200))); ?>
+                                    <?php if(strlen($user_data['company_description']) > 200): ?>
                                         <span class="text-muted">...</span>
                                     <?php endif; ?>
                                     </p>
                                 </div>
                             <?php endif; ?>
                         </div>
+                        
                         <div class="col-md-3 mt-3 mt-md-0">
                             <div class="d-flex flex-column">
                                 <a href="edit_profile.php" class="btn btn-outline-primary mb-2">
@@ -281,8 +324,50 @@ $company_sizes = array(
                                     <i class="fa fa-plus-circle mr-1"></i> Post New Job
                                 </a>
                             </div>
+                            
+                            <!-- Profile Completion Progress -->
+                            <div class="card border-light mt-3">
+                                <div class="card-body p-2">
+                                    <h6 class="card-title text-center mb-2 small">Profile Completion</h6>
+                                    <?php
+                                    // Calculate profile completion percentage
+                                    $total_fields = 6; // Total important fields
+                                    $completed_fields = 0;
+                                    
+                                    if(!empty($user_data['company_name'])) $completed_fields++;
+                                    if(!empty($user_data['industry'])) $completed_fields++;
+                                    if(!empty($user_data['company_size'])) $completed_fields++;
+                                    if(!empty($user_data['company_logo'])) $completed_fields++;
+                                    if(!empty($user_data['company_description'])) $completed_fields++;
+                                    if(!empty($user_data['website'])) $completed_fields++;
+                                    
+                                    $completion_percentage = round(($completed_fields / $total_fields) * 100);
+                                    
+                                    // Determine the progress bar class based on completion percentage
+                                    $progress_class = 'bg-danger';
+                                    if($completion_percentage >= 70) {
+                                        $progress_class = 'bg-success';
+                                    } elseif($completion_percentage >= 30) {
+                                        $progress_class = 'bg-warning';
+                                    }
+                                    ?>
+                                    
+                                    <div class="progress" style="height: 10px;">
+                                        <div class="progress-bar progress-bar-striped <?php echo $progress_class; ?>" 
+                                             role="progressbar" 
+                                             style="width: <?php echo $completion_percentage; ?>%" 
+                                             aria-valuenow="<?php echo $completion_percentage; ?>" 
+                                             aria-valuemin="0" 
+                                             aria-valuemax="100"></div>
+                                    </div>
+                                    <p class="text-center mb-0 mt-1 small">
+                                        <span class="font-weight-bold"><?php echo $completion_percentage; ?>%</span> complete
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     </div>
+
                 </div>
             </div>
         </div>
