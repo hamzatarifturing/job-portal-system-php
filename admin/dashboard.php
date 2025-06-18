@@ -42,6 +42,32 @@ $total_job_applications = mysqli_fetch_assoc($job_applications_result)['total_ap
     <div class="jumbotron">
         <h1 class="display-4">Welcome to Admin Dashboard</h1>
         <p class="lead">System statistics and admin controls</p>
+        
+        <!-- Admin Sub-Menu -->
+        <div class="mt-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">Quick Access</h5>
+                    <div class="d-flex flex-wrap">
+                        <a href="users.php" class="btn btn-primary m-2">
+                            <i class="fa fa-users"></i> Users
+                        </a>
+                        <a href="job_postings.php" class="btn btn-success m-2">
+                            <i class="fa fa-briefcase"></i> Job Postings
+                        </a>
+                        <a href="job_applications.php" class="btn btn-info m-2">
+                            <i class="fa fa-file-alt"></i> Job Applications
+                        </a>
+                        <a href="jobseekers.php" class="btn btn-warning m-2">
+                            <i class="fa fa-user-tie"></i> Job Seekers
+                        </a>
+                        <a href="employers.php" class="btn btn-danger m-2">
+                            <i class="fa fa-building"></i> Employers
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
     
     <!-- Database Entities Counts -->
