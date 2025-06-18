@@ -24,9 +24,9 @@ $total_records = mysqli_fetch_assoc($count_result)['total'];
 $total_pages = ceil($total_records / $limit);
 
 // Get job postings with employer details
-$query = "SELECT jp.*, u.username as employer_username, u.company_name 
+$query = "SELECT jp.*, u.username, u.company_name 
           FROM job_postings jp 
-          LEFT JOIN users u ON jp.employer_id = u.id 
+          LEFT JOIN users u ON jp.user_id = u.id 
           ORDER BY jp.created_at DESC 
           LIMIT $start, $limit";
 $result = mysqli_query($conn, $query);
@@ -66,9 +66,10 @@ $result = mysqli_query($conn, $query);
                                 <th>Company</th>
                                 <th>Location</th>
                                 <th>Job Type</th>
-                                <th>Salary</th>
+                                <th>Salary Range</th>
                                 <th>Posted</th>
                                 <th>Status</th>
+                                <th>Expires</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -84,7 +85,14 @@ $result = mysqli_query($conn, $query);
                                             <?php echo htmlspecialchars($row['job_type']); ?>
                                         </span>
                                     </td>
-                                    <td><?php echo htmlspecialchars($row['salary']); ?></td>
+                                    <td>
+                                        <?php 
+                                            $min = !empty($row['salary_min']) ? number_format($row['salary_min'], 2) : 'N/A';
+                                            $max = !empty($row['salary_max']) ? number_format($row['salary_max'], 2) : 'N/A';
+                                            $period = !empty($row['salary_period']) ? $row['salary_period'] : '';
+                                            echo "$min - $max " . ($period ? "({$period})" : "");
+                                        ?>
+                                    </td>
                                     <td>
                                         <?php 
                                             $date = new DateTime($row['created_at']);
@@ -92,11 +100,40 @@ $result = mysqli_query($conn, $query);
                                         ?>
                                     </td>
                                     <td>
-                                        <?php if($row['status'] == 'active'): ?>
-                                            <span class="badge badge-success">Active</span>
-                                        <?php else: ?>
-                                            <span class="badge badge-danger">Inactive</span>
-                                        <?php endif; ?>
+                                        <?php 
+                                            switch($row['status']) {
+                                                case 'Published':
+                                                    echo '<span class="badge badge-success">Published</span>';
+                                                    break;
+                                                case 'Draft':
+                                                    echo '<span class="badge badge-secondary">Draft</span>';
+                                                    break;
+                                                case 'Closed':
+                                                    echo '<span class="badge badge-danger">Closed</span>';
+                                                    break;
+                                                case 'Filled':
+                                                    echo '<span class="badge badge-primary">Filled</span>';
+                                                    break;
+                                                default:
+                                                    echo '<span class="badge badge-light">Unknown</span>';
+                                            }
+                                        ?>
+                                    </td>
+                                    <td>
+                                        <?php 
+                                            if(!empty($row['expiry_date'])) {
+                                                $expiry = new DateTime($row['expiry_date']);
+                                                $today = new DateTime();
+                                                
+                                                if($today > $expiry) {
+                                                    echo '<span class="text-danger">' . $expiry->format('M d, Y') . '</span>';
+                                                } else {
+                                                    echo $expiry->format('M d, Y');
+                                                }
+                                            } else {
+                                                echo 'N/A';
+                                            }
+                                        ?>
                                     </td>
                                     <td>
                                         <div class="btn-group btn-group-sm">
