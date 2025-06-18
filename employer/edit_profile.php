@@ -216,6 +216,67 @@ $countries = array("Afghanistan", "Albania", "Algeria", "American Samoa", "Andor
 ?>
 
 <div class="container mt-4 mb-5">
+    <!-- Profile Card Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-primary">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-3 text-center mb-3 mb-md-0">
+                            <?php if(isset($user_data['profile_image']) && !empty($user_data['profile_image'])): ?>
+                                <img src="<?php echo htmlspecialchars($user_data['profile_image']); ?>" alt="Profile Image" class="img-fluid rounded-circle" style="max-width: 150px; height: 150px; object-fit: cover; border: 3px solid #007bff;">
+                            <?php else: ?>
+                                <div class="bg-light rounded-circle d-flex align-items-center justify-content-center mx-auto" style="width: 150px; height: 150px; border: 3px solid #007bff;">
+                                    <i class="fa fa-user fa-5x text-secondary"></i>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                        <div class="col-md-5">
+                            <h3 class="mb-1"><?php echo htmlspecialchars($user_data['first_name'] . ' ' . $user_data['last_name']); ?></h3>
+                            <p class="text-muted mb-2">
+                                <i class="fa fa-briefcase mr-2"></i> 
+                                Employer at <?php echo htmlspecialchars($user_data['company_name'] ? $user_data['company_name'] : 'No company specified'); ?>
+                            </p>
+                            <?php if(!empty($user_data['city']) || !empty($user_data['country'])): ?>
+                                <p class="mb-2">
+                                    <i class="fa fa-map-marker-alt mr-2"></i>
+                                    <?php 
+                                        $location = [];
+                                        if(!empty($user_data['city'])) $location[] = htmlspecialchars($user_data['city']);
+                                        if(!empty($user_data['state'])) $location[] = htmlspecialchars($user_data['state']);
+                                        if(!empty($user_data['country'])) $location[] = htmlspecialchars($user_data['country']);
+                                        echo !empty($location) ? implode(', ', $location) : 'Location not specified';
+                                    ?>
+                                </p>
+                            <?php endif; ?>
+                            <?php if(!empty($user_data['phone'])): ?>
+                                <p class="mb-2">
+                                    <i class="fa fa-phone mr-2"></i> <?php echo htmlspecialchars($user_data['phone']); ?>
+                                </p>
+                            <?php endif; ?>
+                            <p class="mb-0">
+                                <i class="fa fa-envelope mr-2"></i> <?php echo htmlspecialchars($user_data['email']); ?>
+                            </p>
+                        </div>
+                        <div class="col-md-4 mt-3 mt-md-0">
+                            <div class="d-flex flex-column">
+                                <a href="company_profile.php" class="btn btn-outline-primary mb-2">
+                                    <i class="fa fa-building mr-1"></i> Company Profile
+                                </a>
+                                <a href="job_listings.php" class="btn btn-outline-success mb-2">
+                                    <i class="fa fa-list mr-1"></i> My Job Listings
+                                </a>
+                                <a href="post_job.php" class="btn btn-outline-info">
+                                    <i class="fa fa-plus-circle mr-1"></i> Post New Job
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row">
         <div class="col-md-3">
             <div class="card">
