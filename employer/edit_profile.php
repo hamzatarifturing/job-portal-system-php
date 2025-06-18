@@ -107,12 +107,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
     if (empty($first_name) || empty($last_name)) {
         $error_message = "First name and last name are required fields.";
     } else {
-        // Additional server-side validation
-        if (!empty($phone) && !preg_match('/^[0-9]{10,15}$/', $phone)) {
+        // Validate date of birth (must be at least 18 years old)
+        if (!empty($date_of_birth)) {
+            $dob = new DateTime($date_of_birth);
+            $today = new DateTime('now');
+            $age = $today->diff($dob)->y;
+            
+            if ($age < 18) {
+                $error_message = "You must be at least 18 years old to register as an employer.";
+            } elseif ($dob > $today) {
+                $error_message = "Date of birth cannot be in the future.";
+            }
+        }
+        
+        // Validate phone number
+        if (empty($error_message) && !empty($phone) && !preg_match('/^[0-9]{10,15}$/', $phone)) {
             $error_message = "Phone number should be between 10-15 digits with no spaces or special characters.";
-        } elseif (!empty($zip_code) && !preg_match('/^[A-Za-z0-9- ]{3,20}$/', $zip_code)) {
-            $error_message = "Invalid postal/zip code format.";
-        } else {
+        }
+        
+        // Validate zip code (5 digits for US, alphanumeric for international)
+        if (empty($error_message) && !empty($zip_code)) {
+            if ($country == "United States" && !preg_match('/^[0-9]{5}(-[0-9]{4})?$/', $zip_code)) {
+                $error_message = "For US addresses, ZIP code must be 5 digits or 5+4 format (e.g., 12345 or 12345-6789).";
+            } elseif (!preg_match('/^[A-Za-z0-9- ]{3,10}$/', $zip_code)) {
+                $error_message = "Postal/ZIP code must be 3-10 alphanumeric characters.";
+            }
+        }
+        
+        if (empty($error_message)) {
             // Handle profile image upload
             $profile_image_path = isset($user_data['profile_image']) ? $user_data['profile_image'] : '';
             if (isset($_FILES['profile_image']) && $_FILES['profile_image']['size'] > 0) {
