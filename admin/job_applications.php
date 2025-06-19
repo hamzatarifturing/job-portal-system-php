@@ -1,0 +1,369 @@
+<?php
+// Start the session
+session_start();
+
+// Check if user is logged in and is an admin
+if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] != 'admin') {
+    header("Location: ../login.php?error=unauthorized");
+    exit();
+}
+
+// Include database configuration and header
+include_once("../includes/db_config.php");
+include_once("../includes/header.php");
+
+// Handle application status update if submitted
+if (isset($_POST['update_status']) && isset($_POST['application_id']) && isset($_POST['new_status'])) {
+    $application_id = $_POST['application_id'];
+    $new_status = $_POST['new_status'];
+    
+    // Valid statuses: 'pending', 'reviewing', 'accepted', 'rejected'
+    $valid_statuses = ['pending', 'reviewing', 'accepted', 'rejected'];
+    if (in_array($new_status, $valid_statuses)) {
+        $update_query = "UPDATE job_applications SET status = ?, updated_at = NOW() WHERE id = ?";
+        $stmt = mysqli_prepare($conn, $update_query);
+        mysqli_stmt_bind_param($stmt, "si", $new_status, $application_id);
+        
+        if (mysqli_stmt_execute($stmt)) {
+            $success_message = "Application status updated to " . ucfirst($new_status);
+        } else {
+            $error_message = "Failed to update application status: " . mysqli_error($conn);
+        }
+        
+        mysqli_stmt_close($stmt);
+    } else {
+        $error_message = "Invalid status value provided.";
+    }
+}
+
+// Configure pagination
+$records_per_page = 10;
+$page = isset($_GET['page']) ? intval($_GET['page']) : 1;
+$offset = ($page - 1) * $records_per_page;
+
+// Configure filtering
+$filter = isset($_GET['filter']) ? $_GET['filter'] : '';
+$where_clause = "1=1"; // This will always be true, allowing us to add conditions with AND
+
+if ($filter == 'pending' || $filter == 'reviewing' || $filter == 'accepted' || $filter == 'rejected') {
+    $where_clause .= " AND ja.status = '$filter'";
+}
+
+// Count total applications for pagination
+$count_sql = "SELECT COUNT(*) as total FROM job_applications ja WHERE $where_clause";
+$count_result = mysqli_query($conn, $count_sql);
+$row = mysqli_fetch_assoc($count_result);
+$total_applications = $row['total'];
+$total_pages = ceil($total_applications / $records_per_page);
+
+// Fetch job applications with related information
+$sql = "SELECT 
+            ja.id, 
+            ja.status, 
+            ja.cover_letter,
+            ja.created_at as application_date,
+            ja.updated_at as last_updated,
+            jp.id as job_id,
+            jp.title as job_title,
+            jp.location as job_location,
+            jp.salary as job_salary,
+            applicant.id as applicant_id,
+            CONCAT(applicant.first_name, ' ', applicant.last_name) as applicant_name,
+            applicant.email as applicant_email,
+            employer.id as employer_id,
+            CONCAT(employer.first_name, ' ', employer.last_name) as employer_name,
+            employer.email as employer_email,
+            company.name as company_name
+        FROM job_applications ja
+        JOIN job_postings jp ON ja.job_id = jp.id
+        JOIN users applicant ON ja.user_id = applicant.id
+        JOIN users employer ON jp.employer_id = employer.id
+        LEFT JOIN company_profiles company ON employer.id = company.user_id
+        WHERE $where_clause
+        ORDER BY ja.created_at DESC
+        LIMIT ?, ?";
+
+$stmt = mysqli_prepare($conn, $sql);
+mysqli_stmt_bind_param($stmt, "ii", $offset, $records_per_page);
+mysqli_stmt_execute($stmt);
+$result = mysqli_stmt_get_result($stmt);
+?>
+
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="m-0">Job Applications Management</h4>
+                </div>
+                <div class="card-body">
+                    <?php if (isset($success_message)): ?>
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <strong>Success!</strong> <?php echo $success_message; ?>
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <?php endif; ?>
+                    
+                    <?php if (isset($error_message)): ?>
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <strong>Error!</strong> <?php echo $error_message; ?>
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <?php endif; ?>
+                    
+                    <!-- Filter buttons -->
+                    <div class="mb-3">
+                        <div class="btn-group" role="group">
+                            <a href="job_applications.php" class="btn <?php echo $filter == '' ? 'btn-primary' : 'btn-outline-primary'; ?>">
+                                All Applications
+                            </a>
+                            <a href="job_applications.php?filter=pending" class="btn <?php echo $filter == 'pending' ? 'btn-primary' : 'btn-outline-primary'; ?>">
+                                Pending
+                            </a>
+                            <a href="job_applications.php?filter=reviewing" class="btn <?php echo $filter == 'reviewing' ? 'btn-primary' : 'btn-outline-primary'; ?>">
+                                Reviewing
+                            </a>
+                            <a href="job_applications.php?filter=accepted" class="btn <?php echo $filter == 'accepted' ? 'btn-primary' : 'btn-outline-primary'; ?>">
+                                Accepted
+                            </a>
+                            <a href="job_applications.php?filter=rejected" class="btn <?php echo $filter == 'rejected' ? 'btn-primary' : 'btn-outline-primary'; ?>">
+                                Rejected
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- Applications count -->
+                    <div class="alert alert-info">
+                        Total Applications: <strong><?php echo $total_applications; ?></strong>
+                        <?php if ($filter): ?>
+                        (Filtered by: <strong><?php echo ucfirst($filter); ?></strong>)
+                        <?php endif; ?>
+                    </div>
+                    
+                    <!-- Applications table -->
+                    <div class="table-responsive">
+                        <table class="table table-striped table-bordered">
+                            <thead class="thead-dark">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Job Title</th>
+                                    <th>Applicant</th>
+                                    <th>Employer/Company</th>
+                                    <th>Applied On</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php if (mysqli_num_rows($result) > 0): ?>
+                                    <?php while ($row = mysqli_fetch_assoc($result)): ?>
+                                    <tr>
+                                        <td><?php echo $row['id']; ?></td>
+                                        <td>
+                                            <strong><?php echo htmlspecialchars($row['job_title']); ?></strong><br>
+                                            <small>Location: <?php echo htmlspecialchars($row['job_location']); ?></small><br>
+                                            <small>Salary: <?php echo htmlspecialchars($row['job_salary']); ?></small>
+                                        </td>
+                                        <td>
+                                            <?php echo htmlspecialchars($row['applicant_name']); ?><br>
+                                            <small><?php echo htmlspecialchars($row['applicant_email']); ?></small>
+                                        </td>
+                                        <td>
+                                            <?php if ($row['company_name']): ?>
+                                                <strong><?php echo htmlspecialchars($row['company_name']); ?></strong><br>
+                                            <?php endif; ?>
+                                            <?php echo htmlspecialchars($row['employer_name']); ?><br>
+                                            <small><?php echo htmlspecialchars($row['employer_email']); ?></small>
+                                        </td>
+                                        <td>
+                                            <?php echo date('M d, Y', strtotime($row['application_date'])); ?><br>
+                                            <small>Last Updated: <?php echo date('M d, Y', strtotime($row['last_updated'])); ?></small>
+                                        </td>
+                                        <td>
+                                            <?php
+                                            $status_class = '';
+                                            switch ($row['status']) {
+                                                case 'pending':
+                                                    $status_class = 'warning';
+                                                    break;
+                                                case 'reviewing':
+                                                    $status_class = 'info';
+                                                    break;
+                                                case 'accepted':
+                                                    $status_class = 'success';
+                                                    break;
+                                                case 'rejected':
+                                                    $status_class = 'danger';
+                                                    break;
+                                                default:
+                                                    $status_class = 'secondary';
+                                            }
+                                            ?>
+                                            <span class="badge badge-<?php echo $status_class; ?>">
+                                                <?php echo ucfirst($row['status']); ?>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <button type="button" class="btn btn-sm btn-info mb-1" data-toggle="modal" data-target="#viewApplicationModal<?php echo $row['id']; ?>">
+                                                View Details
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-primary mb-1" data-toggle="modal" data-target="#updateStatusModal<?php echo $row['id']; ?>">
+                                                Update Status
+                                            </button>
+                                            
+                                            <!-- View Application Modal -->
+                                            <div class="modal fade" id="viewApplicationModal<?php echo $row['id']; ?>" tabindex="-1" role="dialog" aria-labelledby="viewApplicationModalLabel<?php echo $row['id']; ?>" aria-hidden="true">
+                                                <div class="modal-dialog modal-lg" role="document">
+                                                    <div class="modal-content">
+                                                        <div class="modal-header">
+                                                            <h5 class="modal-title" id="viewApplicationModalLabel<?php echo $row['id']; ?>">
+                                                                Application Details #<?php echo $row['id']; ?>
+                                                            </h5>
+                                                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                                <span aria-hidden="true">&times;</span>
+                                                            </button>
+                                                        </div>
+                                                        <div class="modal-body">
+                                                            <div class="row">
+                                                                <div class="col-md-6">
+                                                                    <h5>Job Details</h5>
+                                                                    <p><strong>Title:</strong> <?php echo htmlspecialchars($row['job_title']); ?></p>
+                                                                    <p><strong>Location:</strong> <?php echo htmlspecialchars($row['job_location']); ?></p>
+                                                                    <p><strong>Salary:</strong> <?php echo htmlspecialchars($row['job_salary']); ?></p>
+                                                                    
+                                                                    <h5 class="mt-3">Employer Details</h5>
+                                                                    <?php if ($row['company_name']): ?>
+                                                                        <p><strong>Company:</strong> <?php echo htmlspecialchars($row['company_name']); ?></p>
+                                                                    <?php endif; ?>
+                                                                    <p><strong>Name:</strong> <?php echo htmlspecialchars($row['employer_name']); ?></p>
+                                                                    <p><strong>Email:</strong> <?php echo htmlspecialchars($row['employer_email']); ?></p>
+                                                                </div>
+                                                                <div class="col-md-6">
+                                                                    <h5>Applicant Details</h5>
+                                                                    <p><strong>Name:</strong> <?php echo htmlspecialchars($row['applicant_name']); ?></p>
+                                                                    <p><strong>Email:</strong> <?php echo htmlspecialchars($row['applicant_email']); ?></p>
+                                                                    
+                                                                    <h5 class="mt-3">Application Details</h5>
+                                                                    <p><strong>Status:</strong> 
+                                                                        <span class="badge badge-<?php echo $status_class; ?>">
+                                                                            <?php echo ucfirst($row['status']); ?>
+                                                                        </span>
+                                                                    </p>
+                                                                    <p><strong>Applied On:</strong> <?php echo date('F d, Y', strtotime($row['application_date'])); ?></p>
+                                                                    <p><strong>Last Updated:</strong> <?php echo date('F d, Y', strtotime($row['last_updated'])); ?></p>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <hr>
+                                                            
+                                                            <h5>Cover Letter</h5>
+                                                            <div class="card">
+                                                                <div class="card-body">
+                                                                    <?php echo nl2br(htmlspecialchars($row['cover_letter'])); ?>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="modal-footer">
+                                                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Update Status Modal -->
+                                            <div class="modal fade" id="updateStatusModal<?php echo $row['id']; ?>" tabindex="-1" role="dialog" aria-labelledby="updateStatusModalLabel<?php echo $row['id']; ?>" aria-hidden="true">
+                                                <div class="modal-dialog" role="document">
+                                                    <div class="modal-content">
+                                                        <div class="modal-header">
+                                                            <h5 class="modal-title" id="updateStatusModalLabel<?php echo $row['id']; ?>">
+                                                                Update Application Status
+                                                            </h5>
+                                                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                                <span aria-hidden="true">&times;</span>
+                                                            </button>
+                                                        </div>
+                                                        <form method="post">
+                                                            <div class="modal-body">
+                                                                <input type="hidden" name="application_id" value="<?php echo $row['id']; ?>">
+                                                                
+                                                                <div class="form-group">
+                                                                    <label for="new_status<?php echo $row['id']; ?>">New Status</label>
+                                                                    <select class="form-control" id="new_status<?php echo $row['id']; ?>" name="new_status" required>
+                                                                        <option value="">Select Status</option>
+                                                                        <option value="pending" <?php echo ($row['status'] == 'pending') ? 'selected' : ''; ?>>Pending</option>
+                                                                        <option value="reviewing" <?php echo ($row['status'] == 'reviewing') ? 'selected' : ''; ?>>Reviewing</option>
+                                                                        <option value="accepted" <?php echo ($row['status'] == 'accepted') ? 'selected' : ''; ?>>Accepted</option>
+                                                                        <option value="rejected" <?php echo ($row['status'] == 'rejected') ? 'selected' : ''; ?>>Rejected</option>
+                                                                    </select>
+                                                                </div>
+                                                                
+                                                                <div class="alert alert-warning">
+                                                                    <small>
+                                                                        <strong>Note:</strong> Updating the application status will notify the applicant and employer via email.
+                                                                    </small>
+                                                                </div>
+                                                            </div>
+                                                            <div class="modal-footer">
+                                                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                                                                <button type="submit" name="update_status" class="btn btn-primary">Update Status</button>
+                                                            </div>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <?php endwhile; ?>
+                                <?php else: ?>
+                                    <tr>
+                                        <td colspan="7" class="text-center">No job applications found</td>
+                                    </tr>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Pagination -->
+                    <?php if ($total_pages > 1): ?>
+                    <nav>
+                        <ul class="pagination justify-content-center">
+                            <?php if ($page > 1): ?>
+                            <li class="page-item">
+                                <a class="page-link" href="job_applications.php?page=<?php echo $page-1; ?><?php echo $filter ? '&filter='.$filter : ''; ?>">
+                                    Previous
+                                </a>
+                            </li>
+                            <?php endif; ?>
+                            
+                            <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+                            <li class="page-item <?php echo $i == $page ? 'active' : ''; ?>">
+                                <a class="page-link" href="job_applications.php?page=<?php echo $i; ?><?php echo $filter ? '&filter='.$filter : ''; ?>">
+                                    <?php echo $i; ?>
+                                </a>
+                            </li>
+                            <?php endfor; ?>
+                            
+                            <?php if ($page < $total_pages): ?>
+                            <li class="page-item">
+                                <a class="page-link" href="job_applications.php?page=<?php echo $page+1; ?><?php echo $filter ? '&filter='.$filter : ''; ?>">
+                                    Next
+                                </a>
+                            </li>
+                            <?php endif; ?>
+                        </ul>
+                    </nav>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<?php
+// Include footer
+include_once("../includes/footer.php");
+?>
