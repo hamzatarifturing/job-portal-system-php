@@ -20,17 +20,46 @@ if (isset($_POST['update_status']) && isset($_POST['application_id']) && isset($
     // Valid statuses according to the database schema
     $valid_statuses = ['pending', 'reviewed', 'shortlisted', 'rejected', 'hired'];
     if (in_array($new_status, $valid_statuses)) {
-        $update_query = "UPDATE job_applications SET status = ? WHERE id = ?";
-        $stmt = mysqli_prepare($conn, $update_query);
-        mysqli_stmt_bind_param($stmt, "si", $new_status, $application_id);
+        // Get the current status for comparison
+        $check_query = "SELECT status FROM job_applications WHERE id = ?";
+        $check_stmt = mysqli_prepare($conn, $check_query);
+        mysqli_stmt_bind_param($check_stmt, "i", $application_id);
+        mysqli_stmt_execute($check_stmt);
+        mysqli_stmt_store_result($check_stmt);
         
-        if (mysqli_stmt_execute($stmt)) {
-            $success_message = "Application status updated to " . ucfirst($new_status);
+        if (mysqli_stmt_num_rows($check_stmt) > 0) {
+            mysqli_stmt_bind_result($check_stmt, $current_status);
+            mysqli_stmt_fetch($check_stmt);
+            mysqli_stmt_close($check_stmt);
+            
+            // If updating to rejected and confirmation not received, ask for confirmation
+            if ($new_status == 'rejected' && (!isset($_POST['confirm_reject']) || $_POST['confirm_reject'] != 'yes')) {
+                $warning_message = "You are about to reject application #" . $application_id . ". Please confirm this action.";
+                $confirm_data = [
+                    'application_id' => $application_id,
+                    'new_status' => $new_status
+                ];
+            } else {
+                // Update the application status
+                $update_query = "UPDATE job_applications SET status = ? WHERE id = ?";
+                $stmt = mysqli_prepare($conn, $update_query);
+                mysqli_stmt_bind_param($stmt, "si", $new_status, $application_id);
+                
+                if (mysqli_stmt_execute($stmt)) {
+                    if ($new_status == 'rejected') {
+                        $warning_message = "Application #" . $application_id . " has been REJECTED.";
+                    } else {
+                        $success_message = "Application status updated to " . ucfirst($new_status);
+                    }
+                } else {
+                    $error_message = "Failed to update application status: " . mysqli_error($conn);
+                }
+                
+                mysqli_stmt_close($stmt);
+            }
         } else {
-            $error_message = "Failed to update application status: " . mysqli_error($conn);
+            $error_message = "Application not found.";
         }
-        
-        mysqli_stmt_close($stmt);
     } else {
         $error_message = "Invalid status value provided.";
     }
@@ -103,9 +132,27 @@ $result = mysqli_stmt_get_result($stmt);
                     <h4 class="m-0">Job Applications Management</h4>
                 </div>
                 <div class="card-body">
-                    <?php if (isset($success_message)): ?>
+                <?php if (isset($success_message)): ?>
                     <div class="alert alert-success alert-dismissible fade show" role="alert">
                         <strong>Success!</strong> <?php echo $success_message; ?>
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <?php endif; ?>
+                    
+                    <?php if (isset($warning_message)): ?>
+                    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                        <strong><i class="fa fa-exclamation-triangle"></i> Warning!</strong> <?php echo $warning_message; ?>
+                        <?php if (isset($confirm_data)): ?>
+                        <form method="post" class="mt-2">
+                            <input type="hidden" name="application_id" value="<?php echo $confirm_data['application_id']; ?>">
+                            <input type="hidden" name="new_status" value="<?php echo $confirm_data['new_status']; ?>">
+                            <input type="hidden" name="confirm_reject" value="yes">
+                            <button type="submit" name="update_status" class="btn btn-danger">Yes, Reject Application</button>
+                            <a href="job_applications.php" class="btn btn-secondary">Cancel</a>
+                        </form>
+                        <?php endif; ?>
                         <button type="button" class="close" data-dismiss="alert" aria-label="Close">
                             <span aria-hidden="true">&times;</span>
                         </button>
@@ -354,6 +401,23 @@ $result = mysqli_stmt_get_result($stmt);
                                                                         <option value="hired" <?php echo ($row['status'] == 'hired') ? 'selected' : ''; ?>>Hired</option>
                                                                     </select>
                                                                 </div>
+                                                                
+                                                                <?php if ($row['status'] != 'rejected'): ?>
+                                                                <div id="rejectWarning<?php echo $row['id']; ?>" class="alert alert-danger mt-2" style="display: none;">
+                                                                    <i class="fa fa-exclamation-triangle"></i> <strong>Warning:</strong> Rejecting an application is irreversible and will notify the candidate immediately.
+                                                                </div>
+                                                                
+                                                                <script>
+                                                                    document.getElementById('new_status<?php echo $row['id']; ?>').addEventListener('change', function() {
+                                                                        var warningDiv = document.getElementById('rejectWarning<?php echo $row['id']; ?>');
+                                                                        if (this.value === 'rejected') {
+                                                                            warningDiv.style.display = 'block';
+                                                                        } else {
+                                                                            warningDiv.style.display = 'none';
+                                                                        }
+                                                                    });
+                                                                </script>
+                                                                <?php endif; ?>
                                                                 
                                                                 <div class="alert alert-warning">
                                                                     <small>
