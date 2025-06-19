@@ -23,7 +23,11 @@ if (isset($_POST['toggle_status']) && isset($_POST['user_id'])) {
     mysqli_stmt_bind_param($stmt, "si", $new_status, $user_id);
     
     if (mysqli_stmt_execute($stmt)) {
-        $success_message = "User status updated successfully!";
+        if ($new_status == 'active') {
+            $success_message = "User successfully activated!";
+        } else {
+            $success_message = "User successfully deactivated!";
+        }
     } else {
         $error_message = "Failed to update user status: " . mysqli_error($conn);
     }
@@ -31,22 +35,7 @@ if (isset($_POST['toggle_status']) && isset($_POST['user_id'])) {
     mysqli_stmt_close($stmt);
 }
 
-// Handle user deletion if requested
-if (isset($_POST['delete_user']) && isset($_POST['user_id'])) {
-    $user_id = $_POST['user_id'];
-    
-    $delete_query = "DELETE FROM users WHERE id = ? AND user_type != 'admin'";
-    $stmt = mysqli_prepare($conn, $delete_query);
-    mysqli_stmt_bind_param($stmt, "i", $user_id);
-    
-    if (mysqli_stmt_execute($stmt)) {
-        $success_message = "User deleted successfully!";
-    } else {
-        $error_message = "Failed to delete user: " . mysqli_error($conn);
-    }
-    
-    mysqli_stmt_close($stmt);
-}
+
 
 // Configure pagination
 $records_per_page = 10;
@@ -93,7 +82,7 @@ $result = mysqli_stmt_get_result($stmt);
                 <div class="card-body">
                     <?php if (isset($success_message)): ?>
                         <div class="alert alert-success alert-dismissible fade show" role="alert">
-                            <?php echo $success_message; ?>
+                            <strong>Success!</strong> <?php echo $success_message; ?>
                             <button type="button" class="close" data-dismiss="alert" aria-label="Close">
                                 <span aria-hidden="true">&times;</span>
                             </button>
@@ -102,7 +91,7 @@ $result = mysqli_stmt_get_result($stmt);
                     
                     <?php if (isset($error_message)): ?>
                         <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                            <?php echo $error_message; ?>
+                            <strong>Error!</strong> <?php echo $error_message; ?>
                             <button type="button" class="close" data-dismiss="alert" aria-label="Close">
                                 <span aria-hidden="true">&times;</span>
                             </button>
@@ -163,19 +152,12 @@ $result = mysqli_stmt_get_result($stmt);
                                             <td><?php echo $row['register_date']; ?></td>
                                             <td><?php echo $row['last_login']; ?></td>
                                             <td>
-                                                <form method="post" class="d-inline">
+                                                <form method="post">
                                                     <input type="hidden" name="user_id" value="<?php echo $row['id']; ?>">
                                                     <input type="hidden" name="current_status" value="<?php echo $row['status']; ?>">
-                                                    <button type="submit" name="toggle_status" class="btn btn-sm <?php echo $row['status'] == 'active' ? 'btn-warning' : 'btn-success'; ?>">
+                                                    <button type="submit" name="toggle_status" class="btn btn-sm <?php echo $row['status'] == 'active' ? 'btn-warning' : 'btn-success'; ?> btn-block">
                                                         <?php echo $row['status'] == 'active' ? 'Deactivate' : 'Activate'; ?>
                                                     </button>
-                                                </form>
-                                                
-                                                <a href="view_user.php?id=<?php echo $row['id']; ?>" class="btn btn-sm btn-info">View</a>
-                                                
-                                                <form method="post" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this user?');">
-                                                    <input type="hidden" name="user_id" value="<?php echo $row['id']; ?>">
-                                                    <button type="submit" name="delete_user" class="btn btn-sm btn-danger">Delete</button>
                                                 </form>
                                             </td>
                                         </tr>
