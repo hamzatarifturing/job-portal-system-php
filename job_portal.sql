@@ -100,6 +100,9 @@ BEGIN
     IF NEW.status != OLD.status THEN
         -- Set appropriate notification title and message based on new status
         CASE NEW.status
+            WHEN 'pending' THEN
+                SET application_title = 'Application Status Updated';
+                SET application_message = CONCAT('Your job application (ID: ', NEW.id, ') has been marked as pending.');
             WHEN 'reviewed' THEN
                 SET application_title = 'Application Reviewed';
                 SET application_message = CONCAT('Your job application (ID: ', NEW.id, ') has been reviewed by the employer.');
@@ -111,12 +114,9 @@ BEGIN
                 SET application_message = CONCAT('We regret to inform you that your job application (ID: ', NEW.id, ') was not selected at this time.');
         END CASE;
         
-        -- Only insert notification if we have a message (excludes 'pending' status)
-        IF application_title IS NOT NULL THEN
-            -- Insert notification for the job seeker
-            INSERT INTO notifications (user_id, type, reference_id, title, message, is_read, created_at)
-            VALUES (NEW.user_id, 'application_status', NEW.id, application_title, application_message, 0, NOW());
-        END IF;
+        -- Insert notification for the job seeker
+        INSERT INTO notifications (user_id, type, reference_id, title, message, is_read, created_at)
+        VALUES (NEW.user_id, 'application_status', NEW.id, application_title, application_message, 0, NOW());
     END IF;
 END//
 
