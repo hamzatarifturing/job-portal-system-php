@@ -86,3 +86,38 @@ CREATE TABLE `notifications` (
   `read_at` TIMESTAMP NULL DEFAULT NULL,
   FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+DELIMITER //
+
+CREATE TRIGGER after_job_application_status_update
+AFTER UPDATE ON job_applications
+FOR EACH ROW
+BEGIN
+    DECLARE application_title VARCHAR(100);
+    DECLARE application_message TEXT;
+    
+    -- Only create notification if status has changed
+    IF NEW.status != OLD.status THEN
+        -- Set appropriate notification title and message based on new status
+        CASE NEW.status
+            WHEN 'reviewed' THEN
+                SET application_title = 'Application Reviewed';
+                SET application_message = CONCAT('Your job application (ID: ', NEW.id, ') has been reviewed by the employer.');
+            WHEN 'shortlisted' THEN
+                SET application_title = 'Application Shortlisted';
+                SET application_message = CONCAT('Congratulations! Your job application (ID: ', NEW.id, ') has been shortlisted by the employer.');
+            WHEN 'rejected' THEN
+                SET application_title = 'Application Status Update';
+                SET application_message = CONCAT('We regret to inform you that your job application (ID: ', NEW.id, ') was not selected at this time.');
+        END CASE;
+        
+        -- Only insert notification if we have a message (excludes 'pending' status)
+        IF application_title IS NOT NULL THEN
+            -- Insert notification for the job seeker
+            INSERT INTO notifications (user_id, type, reference_id, title, message, is_read, created_at)
+            VALUES (NEW.user_id, 'application_status', NEW.id, application_title, application_message, 0, NOW());
+        END IF;
+    END IF;
+END//
+
+DELIMITER ;
