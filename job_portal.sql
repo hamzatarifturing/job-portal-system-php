@@ -73,6 +73,7 @@ CREATE TABLE job_applications (
     UNIQUE KEY unique_application (job_id, user_id)
 );
 
+
 CREATE TABLE `notifications` (
   `notification_id` INT AUTO_INCREMENT PRIMARY KEY,
   `user_id` INT NOT NULL,
@@ -83,5 +84,5 @@ CREATE TABLE `notifications` (
   `is_read` TINYINT(1) DEFAULT 0,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `read_at` TIMESTAMP NULL DEFAULT NULL,
-  FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
