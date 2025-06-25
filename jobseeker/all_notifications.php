@@ -38,25 +38,7 @@ if (isset($_POST['mark_read']) && isset($_POST['notification_id'])) {
     exit;
 }
 
-// Handle marking all notifications as read via AJAX
-if (isset($_POST['mark_all_read'])) {
-    $userId = $_SESSION['user_id'];
-    
-    $sql = "UPDATE notifications 
-            SET is_read = 1, read_at = NOW() 
-            WHERE user_id = ?";
-    
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("i", $userId);
-    $success = $stmt->execute();
-    
-    if ($success) {
-        echo json_encode(['success' => true]);
-    } else {
-        echo json_encode(['success' => false, 'message' => 'Failed to mark all notifications as read']);
-    }
-    exit;
-}
+// "Mark all as read" functionality has been removed for better user experience
 
 // Handle deleting a notification via AJAX
 if (isset($_POST['delete_notification']) && isset($_POST['notification_id'])) {
@@ -173,11 +155,7 @@ include '../includes/header.php';
             <h2>Your Notifications</h2>
         </div>
         <div class="col-md-4 text-right">
-            <?php if ($unreadCount > 0): ?>
-                <button id="mark-all-read" class="btn btn-outline-primary">
-                    <i class="fa fa-check-circle-o"></i> Mark All as Read
-                </button>
-            <?php endif; ?>
+            <!-- "Mark All as Read" button removed for better user experience -->
         </div>
     </div>
 
@@ -236,12 +214,12 @@ include '../includes/header.php';
                     </div>
                     <div class="notification-actions">
                         <?php if (!$notification['is_read']): ?>
-                            <button class="btn btn-sm btn-outline-primary mark-read-btn" title="Mark as Read" data-id="<?php echo $notification['notification_id']; ?>">
-                                <i class="fa fa-check"></i>
+                            <button class="btn btn-sm btn-outline-primary mark-read-btn" data-id="<?php echo $notification['notification_id']; ?>">
+                                <i class="fa fa-check"></i> Mark Read
                             </button>
                         <?php endif; ?>
-                        <button class="btn btn-sm btn-outline-danger delete-btn" title="Delete" data-id="<?php echo $notification['notification_id']; ?>">
-                            <i class="fa fa-trash-o"></i>
+                        <button class="btn btn-sm btn-outline-danger delete-btn" data-id="<?php echo $notification['notification_id']; ?>">
+                            <i class="fa fa-trash-o"></i> Delete
                         </button>
                     </div>
                 </div>
@@ -439,40 +417,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Mark all notifications as read
-    const markAllReadBtn = document.getElementById('mark-all-read');
-    if (markAllReadBtn) {
-        markAllReadBtn.addEventListener('click', function() {
-            const xhr = new XMLHttpRequest();
-            xhr.open('POST', 'all_notifications.php', true);
-            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState === 4 && xhr.status === 200) {
-                    const response = JSON.parse(xhr.responseText);
-                    if (response.success) {
-                        // Update UI to mark all as read
-                        document.querySelectorAll('.notification-card.unread').forEach(card => {
-                            card.classList.remove('unread');
-                            card.classList.add('read');
-                            
-                            // Remove "New" badges
-                            const badges = card.querySelectorAll('.badge-primary');
-                            badges.forEach(badge => badge.remove());
-                            
-                            // Remove mark-read buttons
-                            const readBtns = card.querySelectorAll('.mark-read-btn');
-                            readBtns.forEach(btn => btn.remove());
-                        });
-                        
-                        // Hide the "mark all as read" button
-                        markAllReadBtn.style.display = 'none';
-                    }
-                }
-            };
-            xhr.send('mark_all_read=true');
-        });
-    }
-
+    // "Mark all as read" functionality has been removed for better user experience
     // Delete notification
     const deleteBtns = document.querySelectorAll('.delete-btn');
     deleteBtns.forEach(btn => {
@@ -573,14 +518,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         btnElement.remove();
                     }
                     
-                    // Check if there are any more unread notifications
-                    const unreadCards = document.querySelectorAll('.notification-card.unread');
-                    if (unreadCards.length === 0) {
-                        const markAllReadBtn = document.getElementById('mark-all-read');
-                        if (markAllReadBtn) {
-                            markAllReadBtn.style.display = 'none';
-                        }
-                    }
+                    // No need to check for unread notifications for "Mark all as read" button
+                                    // since that feature has been 
                 }
             }
         };
