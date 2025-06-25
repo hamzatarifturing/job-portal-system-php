@@ -1,7 +1,7 @@
 <?php
 /**
- * all_notifications.php
- * Displays all notifications for the currently logged in user
+ * jobseeker/all_notifications.php
+ * Displays all notifications for the currently logged in job seeker
  */
 
 // Start session if not already started
@@ -10,13 +10,13 @@ if (session_status() == PHP_SESSION_NONE) {
 }
 
 // Redirect to login if not logged in
-if (!isset($_SESSION['user_id'])) {
-    header("Location: login.php");
+if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'jobseeker') {
+    header("Location: ../login.php");
     exit();
 }
 
 // Include database configuration
-require_once 'includes/db_config.php';
+require_once '../includes/db_config.php';
 
 // Handle marking notification as read via AJAX
 if (isset($_POST['mark_read']) && isset($_POST['notification_id'])) {
@@ -161,26 +161,10 @@ function getTypeLabel($type) {
     }
 }
 
-// Function to get the icon for a notification type
-function getNotificationIcon($type) {
-    switch($type) {
-        case 'job_application':
-            return 'fa-file-text-o';
-        case 'application_status':
-            return 'fa-check-circle-o';
-        case 'job_posting':
-            return 'fa-briefcase';
-        case 'message':
-            return 'fa-envelope-o';
-        case 'system':
-            return 'fa-exclamation-circle';
-        default:
-            return 'fa-bell-o';
-    }
-}
+
 
 // Include page header
-include 'includes/header.php';
+include '../includes/header.php';
 ?>
 
 <div class="container mt-4">
@@ -201,12 +185,12 @@ include 'includes/header.php';
     <div class="row mb-3">
         <div class="col-md-6">
             <div class="btn-group" role="group">
-                <a href="all_notifications.php" class="btn <?php echo $filter == 'all' ? 'btn-primary' : 'btn-outline-primary'; ?>">All</a>
-                <a href="all_notifications.php?type=unread" class="btn <?php echo $filter == 'unread' ? 'btn-primary' : 'btn-outline-primary'; ?>">
+            <a href="<?php echo basename($_SERVER['PHP_SELF']); ?>" class="btn <?php echo $filter == 'all' ? 'btn-primary' : 'btn-outline-primary'; ?>">All</a>
+                <a href="<?php echo basename($_SERVER['PHP_SELF']); ?>?type=unread" class="btn <?php echo $filter == 'unread' ? 'btn-primary' : 'btn-outline-primary'; ?>">
                     Unread <?php echo $unreadCount > 0 ? "($unreadCount)" : ""; ?>
                 </a>
                 <?php foreach ($notificationTypes as $type): ?>
-                    <a href="all_notifications.php?type=<?php echo $type; ?>" 
+                    <a href="<?php echo basename($_SERVER['PHP_SELF']); ?>?type=<?php echo $type; ?>" 
                        class="btn <?php echo $filter == $type ? 'btn-primary' : 'btn-outline-primary'; ?>">
                         <?php echo getTypeLabel($type); ?>
                     </a>
@@ -501,7 +485,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // AJAX request to delete notification
                 const xhr = new XMLHttpRequest();
-                xhr.open('POST', 'all_notifications.php', true);
+                xhr.open('POST', window.location.href, true);
                 xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
                 xhr.onreadystatechange = function() {
                     if (xhr.readyState === 4 && xhr.status === 200) {
@@ -546,29 +530,16 @@ document.addEventListener('DOMContentLoaded', function() {
             const referenceId = this.getAttribute('data-reference');
             const type = this.getAttribute('data-type');
             
-            // If notification is unread, mark it as read
-            if (this.classList.contains('unread')) {
+           // If notification is unread, mark it as read
+           if (this.classList.contains('unread')) {
                 markAsRead(notificationId);
             }
-            
-            // Navigate to appropriate page based on notification type
-            if (type === 'application_status' && referenceId) {
-                window.location.href = 'jobseeker/job_application.php?id=' + referenceId;
-            } else if (type === 'job_posting' && referenceId) {
-                window.location.href = 'jobseeker/job_details.php?id=' + referenceId;
-            } else if (type === 'job_application' && referenceId) {
-                window.location.href = 'employer/view_application.php?id=' + referenceId;
-            } else if (type === 'message') {
-                window.location.href = 'messages.php';
-            }
-            // Default is to stay on the current page
         });
     });
 
-    // Helper function to mark notification as read
     function markAsRead(notificationId, btnElement = null) {
         const xhr = new XMLHttpRequest();
-        xhr.open('POST', 'all_notifications.php', true);
+        xhr.open('POST', window.location.href, true);
         xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
         xhr.onreadystatechange = function() {
             if (xhr.readyState === 4 && xhr.status === 200) {
@@ -620,5 +591,5 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <?php
 // Include page footer
-include 'includes/footer.php';
+include '../includes/footer.php';
 ?>
