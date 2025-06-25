@@ -139,6 +139,7 @@ while ($row = $result->fetch_assoc()) {
 }
 
 // Get notification types for filter dropdown
+// Only get types that actually have notifications
 $typesSql = "SELECT DISTINCT type FROM notifications WHERE user_id = ?";
 $typesStmt = $conn->prepare($typesSql);
 $typesStmt->bind_param("i", $userId);
@@ -203,20 +204,63 @@ include '../includes/header.php';
 
     <!-- Notification filters -->
     <div class="row mb-3">
-        <div class="col-md-6">
-            <div class="btn-group" role="group">
-            <a href="<?php echo basename($_SERVER['PHP_SELF']); ?>" class="btn <?php echo $filter == 'all' ? 'btn-primary' : 'btn-outline-primary'; ?>">All</a>
-                <a href="<?php echo basename($_SERVER['PHP_SELF']); ?>?type=unread" class="btn <?php echo $filter == 'unread' ? 'btn-primary' : 'btn-outline-primary'; ?>">
-                    Unread <?php echo $unreadCount > 0 ? "($unreadCount)" : ""; ?>
-                </a>
-                <a href="<?php echo basename($_SERVER['PHP_SELF']); ?>?type=read" class="btn <?php echo $filter == 'read' ? 'btn-primary' : 'btn-outline-primary'; ?>">
-                    Read <?php echo $readCount > 0 ? "($readCount)" : ""; ?>
-                </a>
-                <?php foreach ($notificationTypes as $type): ?>
-                    <a href="<?php echo basename($_SERVER['PHP_SELF']); ?>?type=<?php echo $type; ?>" 
-                       class="btn <?php echo $filter == $type ? 'btn-primary' : 'btn-outline-primary'; ?>">
-                        <?php echo getTypeLabel($type); ?>
+        <div class="col-md-12">
+            <div class="btn-group flex-wrap" role="group">
+            <?php 
+                // Check if user has any notifications
+                $totalCount = $unreadCount + $readCount;
+                if ($totalCount > 0): 
+                ?>
+                    <a href="<?php echo basename($_SERVER['PHP_SELF']); ?>" class="btn <?php echo $filter == 'all' ? 'btn-primary' : 'btn-outline-primary'; ?>">
+                        All (<?php echo $totalCount; ?>)
                     </a>
+                <?php else: ?>
+                    <button type="button" class="btn btn-outline-secondary" disabled>
+                        All (0)
+                    </button>
+                <?php endif; ?>
+                
+                <?php if ($unreadCount > 0): ?>
+                    <a href="<?php echo basename($_SERVER['PHP_SELF']); ?>?type=unread" class="btn <?php echo $filter == 'unread' ? 'btn-primary' : 'btn-outline-primary'; ?>">
+                        Unread (<?php echo $unreadCount; ?>)
+                    </a>
+                <?php else: ?>
+                    <button type="button" class="btn btn-outline-secondary" disabled>
+                        Unread (0)
+                    </button>
+                <?php endif; ?>
+                
+                <?php if ($readCount > 0): ?>
+                    <a href="<?php echo basename($_SERVER['PHP_SELF']); ?>?type=read" class="btn <?php echo $filter == 'read' ? 'btn-primary' : 'btn-outline-primary'; ?>">
+                        Read (<?php echo $readCount; ?>)
+                    </a>
+                <?php else: ?>
+                    <button type="button" class="btn btn-outline-secondary" disabled>
+                        Read (0)
+                    </button>
+                <?php endif; ?>
+                <?php foreach ($notificationTypes as $type): ?>
+                    <?php 
+                    // Count notifications of this specific type
+                    $typeSql = "SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND type = ?";
+                    $typeStmt = $conn->prepare($typeSql);
+                    $typeStmt->bind_param("is", $userId, $type);
+                    $typeStmt->execute();
+                    $typeResult = $typeStmt->get_result();
+                    $typeRow = $typeResult->fetch_assoc();
+                    $typeCount = $typeRow['count'];
+                    ?>
+                    
+                    <?php if ($typeCount > 0): ?>
+                        <a href="<?php echo basename($_SERVER['PHP_SELF']); ?>?type=<?php echo $type; ?>" 
+                           class="btn <?php echo $filter == $type ? 'btn-primary' : 'btn-outline-primary'; ?>">
+                            <?php echo getTypeLabel($type); ?> (<?php echo $typeCount; ?>)
+                        </a>
+                    <?php else: ?>
+                        <button type="button" class="btn btn-outline-secondary" disabled>
+                            <?php echo getTypeLabel($type); ?> (0)
+                        </button>
+                    <?php endif; ?>
                 <?php endforeach; ?>
             </div>
         </div>
