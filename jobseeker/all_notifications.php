@@ -67,32 +67,66 @@ $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $limit = 15; // Notifications per page
 $offset = ($page - 1) * $limit;
 
-// Get total notifications for pagination
-$countSql = "SELECT COUNT(*) as total FROM notifications WHERE user_id = ?";
+// Get filter for notification type
+$filter = isset($_GET['type']) ? $_GET['type'] : 'all';
+
+// Get total notifications for pagination based on current filter
+if ($filter == 'read') {
+    $countSql = "SELECT COUNT(*) as total FROM notifications WHERE user_id = ? AND is_read = 1";
+} else if ($filter == 'unread') {
+    $countSql = "SELECT COUNT(*) as total FROM notifications WHERE user_id = ? AND is_read = 0";
+} else if ($filter != 'all') {
+    $countSql = "SELECT COUNT(*) as total FROM notifications WHERE user_id = ? AND type = ?";
+} else {
+    $countSql = "SELECT COUNT(*) as total FROM notifications WHERE user_id = ?";
+}
+
 $countStmt = $conn->prepare($countSql);
-$countStmt->bind_param("i", $userId);
+
+if ($filter != 'all' && $filter != 'read' && $filter != 'unread') {
+    $countStmt->bind_param("is", $userId, $filter);
+} else {
+    $countStmt->bind_param("i", $userId);
+}
+
 $countStmt->execute();
 $result = $countStmt->get_result();
 $row = $result->fetch_assoc();
 $totalNotifications = $row['total'];
 $totalPages = ceil($totalNotifications / $limit);
 
-// Get filter for notification type
-$filter = isset($_GET['type']) ? $_GET['type'] : 'all';
-$filterClause = ($filter != 'all') ? " AND type = ?" : "";
-
-// Set up the SQL query with filtering and pagination
-$sql = "SELECT * FROM notifications 
-        WHERE user_id = ?" . $filterClause . " 
-        ORDER BY created_at DESC 
-        LIMIT ? OFFSET ?";
-
-// Prepare and execute the query with appropriate parameters
-$stmt = $conn->prepare($sql);
-
-if ($filter != 'all') {
+// Set up SQL query based on filter type
+if ($filter == 'read') {
+    // Show only read notifications
+    $sql = "SELECT * FROM notifications 
+            WHERE user_id = ? AND is_read = 1
+            ORDER BY created_at DESC 
+            LIMIT ? OFFSET ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("iii", $userId, $limit, $offset);
+} else if ($filter == 'unread') {
+    // Show only unread notifications
+    $sql = "SELECT * FROM notifications 
+            WHERE user_id = ? AND is_read = 0
+            ORDER BY created_at DESC 
+            LIMIT ? OFFSET ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("iii", $userId, $limit, $offset);
+} else if ($filter != 'all') {
+    // Filter by specific notification type
+    $sql = "SELECT * FROM notifications 
+            WHERE user_id = ? AND type = ?
+            ORDER BY created_at DESC 
+            LIMIT ? OFFSET ?";
+    $stmt = $conn->prepare($sql);
     $stmt->bind_param("isis", $userId, $filter, $limit, $offset);
 } else {
+    // Show all notifications
+    $sql = "SELECT * FROM notifications 
+            WHERE user_id = ?
+            ORDER BY created_at DESC 
+            LIMIT ? OFFSET ?";
+    $stmt = $conn->prepare($sql);
     $stmt->bind_param("iii", $userId, $limit, $offset);
 }
 
@@ -116,7 +150,7 @@ while ($row = $typesResult->fetch_assoc()) {
     $notificationTypes[] = $row['type'];
 }
 
-// Count unread notifications
+// Count unread and read notifications
 $unreadSql = "SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND is_read = 0";
 $unreadStmt = $conn->prepare($unreadSql);
 $unreadStmt->bind_param("i", $userId);
@@ -124,6 +158,14 @@ $unreadStmt->execute();
 $unreadResult = $unreadStmt->get_result();
 $unreadRow = $unreadResult->fetch_assoc();
 $unreadCount = $unreadRow['count'];
+
+$readSql = "SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND is_read = 1";
+$readStmt = $conn->prepare($readSql);
+$readStmt->bind_param("i", $userId);
+$readStmt->execute();
+$readResult = $readStmt->get_result();
+$readRow = $readResult->fetch_assoc();
+$readCount = $readRow['count'];
 
 // Function to convert notification type to a human-readable label
 function getTypeLabel($type) {
@@ -166,6 +208,9 @@ include '../includes/header.php';
             <a href="<?php echo basename($_SERVER['PHP_SELF']); ?>" class="btn <?php echo $filter == 'all' ? 'btn-primary' : 'btn-outline-primary'; ?>">All</a>
                 <a href="<?php echo basename($_SERVER['PHP_SELF']); ?>?type=unread" class="btn <?php echo $filter == 'unread' ? 'btn-primary' : 'btn-outline-primary'; ?>">
                     Unread <?php echo $unreadCount > 0 ? "($unreadCount)" : ""; ?>
+                </a>
+                <a href="<?php echo basename($_SERVER['PHP_SELF']); ?>?type=read" class="btn <?php echo $filter == 'read' ? 'btn-primary' : 'btn-outline-primary'; ?>">
+                    Read <?php echo $readCount > 0 ? "($readCount)" : ""; ?>
                 </a>
                 <?php foreach ($notificationTypes as $type): ?>
                     <a href="<?php echo basename($_SERVER['PHP_SELF']); ?>?type=<?php echo $type; ?>" 
@@ -213,10 +258,14 @@ include '../includes/header.php';
                         </div>
                     </div>
                     <div class="notification-actions">
-                        <?php if (!$notification['is_read']): ?>
+                    <?php if (!$notification['is_read']): ?>
                             <button class="btn btn-sm btn-outline-primary mark-read-btn" data-id="<?php echo $notification['notification_id']; ?>">
                                 <i class="fa fa-check"></i> Mark Read
                             </button>
+                        <?php else: ?>
+                            <span class="btn btn-sm btn-outline-secondary disabled">
+                                <i class="fa fa-check-circle"></i> Read
+                            </span>
                         <?php endif; ?>
                         <button class="btn btn-sm btn-outline-danger delete-btn" data-id="<?php echo $notification['notification_id']; ?>">
                             <i class="fa fa-trash-o"></i> Delete
@@ -372,8 +421,12 @@ include '../includes/header.php';
     margin-left: 15px;
 }
 
-.notification-actions button {
+.notification-actions button, 
+.notification-actions .btn {
     margin-bottom: 5px;
+    min-width: 110px; /* Ensure buttons are wide enough to display text */
+    text-align: left;
+    white-space: nowrap;
 }
 
 .empty-notifications {
